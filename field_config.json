@@ -1,0 +1,117 @@
+{
+    "fields": {
+      "tax_name": {
+        "label": "Name",
+        "match_mode": "exact",
+        "search_area": {
+            "x_start": 0,
+            "x_end": 100,
+            "y_start": 0,
+            "y_end": 50
+        },
+        "offsets": {
+          "vertical_offset": 3,
+          "horizontal_offset": -4,
+          "value_height": 12,
+          "value_width": 200
+        }
+      },
+      "tax_street": {
+        "label": "street",
+        "match_mode": "loose",
+        "search_area": {
+            "x_start": 0,
+            "x_end": 100,
+            "y_start": 0,
+            "y_end": 50
+        },
+        "offsets": {
+          "vertical_offset": 3,
+          "horizontal_offset": -4,
+          "value_height": 12,
+          "value_width": 200
+        }
+      },
+      "tax_city": {
+        "label": "city or town",
+        "match_mode": "loose",
+        "search_area": {
+            "x_start": 0,
+            "x_end": 100,
+            "y_start": 0,
+            "y_end": 50
+        },
+        "offsets": {
+          "vertical_offset": 3,
+          "horizontal_offset": -4,
+          "value_height": 12,
+          "value_width": 200
+        }
+      },
+      "ein":{
+        "label": "employer identification",
+        "match_mode": "loose",
+        "search_area": {
+            "x_start": 0,
+            "x_end": 100,
+            "y_start": 0,
+            "y_end": 50
+        },
+        "offsets": {
+          "vertical_offset": 3,
+          "horizontal_offset": 0,
+          "value_height": 12,
+          "value_width": 200
+        }
+      },
+      "inception_date":{
+        "label": "date incorporated",
+        "match_mode": "loose",
+        "search_area": {
+            "x_start": 0,
+            "x_end": 100,
+            "y_start": 0,
+            "y_end": 50
+        },
+        "offsets": {
+          "vertical_offset": 3,
+          "horizontal_offset": 0,
+          "value_height": 12,
+          "value_width": 200
+        }
+      },
+      "gross_revenue":{
+        "label": "1c",
+        "match_mode": "loose",
+        "search_area": {
+            "x_start": 0,
+            "x_end": 100,
+            "y_start": 0,
+            "y_end": 50
+        },
+        "offsets": {
+          "vertical_offset": -12,
+          "horizontal_offset": 15,
+          "value_height": 12,
+          "value_width": 100
+        }
+      },
+      "cost_of_goods_sold":{
+        "label": "Cost of goods",
+        "match_mode": "loose",
+        "search_area": {
+            "x_start": 0,
+            "x_end": 100,
+            "y_start": 0,
+            "y_end": 50
+        },
+        "offsets": {
+          "vertical_offset": -12,
+          "horizontal_offset": 15,
+          "value_height": 12,
+          "value_width": 100
+        }
+      }
+    }
+  }
+  
