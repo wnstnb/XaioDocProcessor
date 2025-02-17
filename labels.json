@@ -1,0 +1,895 @@
+{
+    "1120S_p1":[
+        {
+            "key": "tax_year",
+            "question":"Calendar Year or tax year",
+            "target_coords": "[x1, y1, x2, y2]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "business_name",
+            "question":"Line with the word 'Name' in it",
+            "target_coords": "[x1-0.005, y2, 0.7, y2+(y2-y1)]"
+        },
+        {
+            "key": "street_address",
+            "question":"Number street and room label.",
+            "target_coords": "[x1-0.005, y2, 0.7, y2+(y2-y1)]"
+        },
+        {
+            "key": "city_state",
+            "question":"City or town, state",
+            "target_coords": "[x1-0.005, y2, 0.7, y2+(y2-y1)]"
+        },
+        {
+            "key": "ein",
+            "question":"Employer Identification Number",
+            "target_coords": "[x1-0.005, y2, 1, y2+(y2-y1)]"
+        },
+        {
+            "key": "inception_date",
+            "question":"Date Incorporated",
+            "target_coords": "[x1-0.005, y2, 1, y2+(y2-y1)]"
+        },
+        {
+            "key": "gross_revenue",
+            "question":"Line with the word 'Balance' in it",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "cost_of_goods_sold",
+            "question":"Cost of goods sold label",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "gross_profit",
+            "question":"'Gross Profit label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "officers_compensation",
+            "question":"Officers Compensation label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "interest",
+            "question":"'Interest' label for interest paid.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "depreciation",
+            "question":"'Depreciation from' label",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "total_deductions",
+            "question":"Total deductions label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "net_profit",
+            "question":"Ordinary Business profit label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        }
+    ],
+    "1120S_k1":[
+        {
+            "key": "tax_year",
+            "question":"For calendar year, or tax year label",
+            "search_coords": "[0, 0, 1, 0.25]",
+            "target_coords": "[x1, y1, x2, y2]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "business_name",
+            "question":"Corporation's name, address, city",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1, y2, 0.5, y2+0.07]",
+            "prep": "lambda x: x[0]"
+        },
+        {
+            "key": "shareholder_name",
+            "question":"Shareholder's name, address, city",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[x1, y2, 0.5, y2+0.07]",
+            "prep": "lambda x: x[0]"
+        },
+        {
+            "key": "ownership_pct",
+            "question":"Current year allocation percentage %",
+            "target_coords": "[x2+0.01, y1-0.005, 0.5, y2+0.005]",
+            "search_coords": "[0, 0.6, 0.5, 1]"
+        }
+    ],
+    "1120S_bal_sheet":[
+        {
+            "key": "tax_year",
+            "question":"Form 1120",
+            "search_coords": "[0, 0, 1, 0.25]",
+            "target_coords": "[x1, y1, x2, y2]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "beginning_cash",
+            "question":"1 Cash",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.5, y1-0.005, 0.7, y2+0.005]"
+        },
+        {
+            "key": "ending_cash",
+            "question":"1 Cash",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_accounts_receivable",
+            "question":"Less allowance for bad debts",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.5, y1-0.005, 0.7, y2+0.005]"
+        },
+        {
+            "key": "ending_accounts_receivable",
+            "question":"Less allowance for bad debts",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_inventories",
+            "question":"Inventories",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.5, y1-0.005, 0.7, y2+0.005]"
+        },
+        {
+            "key": "ending_inventories",
+            "question":"Inventories",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_total_assets",
+            "question":"Total Assets",
+            "search_coords": "[0, 0.3, 1, 0.7]",
+            "target_coords": "[0.5, y1-0.005, 0.7, y2+0.005]"
+        },
+        {
+            "key": "ending_total_assets",
+            "question":"Total Assets",
+            "search_coords": "[0, 0.3, 1, 0.7]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_accounts_payable",
+            "question":"Accounts Payable",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.5, y1-0.005, 0.7, y2+0.005]"
+        },
+        {
+            "key": "ending_accounts_payable",
+            "question":"Accounts Payable",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_notes_payable",
+            "question":"payable in less than 1 year",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.5, y1-0.005, 0.7, y2+0.005]"
+        },
+        {
+            "key": "ending_notes_payable",
+            "question":"payable in less than 1 year",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_other_current_liabilities",
+            "question":"Other current liabilities",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.5, y1-0.005, 0.7, y2+0.005]"
+        },
+        {
+            "key": "ending_other_current_liabilities",
+            "question":"Other current liabilities",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_total_liabilities",
+            "question":"Total Liabilities and Shareholder",
+            "search_coords": "[0, 0.6, 1, 1]",
+            "target_coords": "[0.5, y1-0.005, 0.7, y2+0.005]"
+        },
+        {
+            "key": "ending_total_liabilities",
+            "question":"Total Liabilities and Shareholder",
+            "search_coords": "[0, 0.6, 1, 1]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        }
+    ],
+    "1065_p1":[
+        {
+            "key": "tax_year",
+            "question":"Calendar Year or tax year",
+            "target_coords": "[x1, y1, x2, y2]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "business_name",
+            "question":"Name of partnership",
+            "target_coords": "[x1-0.005, y2, 0.7, y2+(1.25*(y2-y1))]",
+            "search_coords": "[0,0,1,0.3]"
+        },
+        {
+            "key": "street_address",
+            "question":"Number street and room label.",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1-0.005, y2, 0.7, y2+(1.25*(y2-y1))]"
+        },
+        {
+            "key": "city_state",
+            "question":"City or town, state",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1-0.005, y2, 0.7, y2+(2.1*(y2-y1))]"
+        },
+        {
+            "key": "ein",
+            "question":"Employer Identification Number",
+            "search_coords": "[0.5, 0, 1, 0.25]",
+            "ignore_words": "['Phone','Date','OMB']",
+            "target_coords": "[x1-0.005, y2, 1, y2+(y2-y1)]"
+        },
+        {
+            "key": "inception_date",
+            "question":"Date Business Started or Inception Date",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "ignore_words": "['Code']",
+            "target_coords": "[x1-0.005, y2, 1, y2+(2*(y2-y1))]"
+        },
+        {
+            "key": "gross_revenue",
+            "question":"Line with the word 'Balance' in it",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "cost_of_goods_sold",
+            "question":"Cost of goods sold label",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "gross_profit",
+            "question":"'Gross Profit label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "officers_compensation",
+            "question":"Guaranteed payments to partners",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "interest",
+            "question":"'Interest' label for interest paid.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "depreciation",
+            "question":"Less depreciation reported on",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "total_deductions",
+            "question":"Total deductions label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "net_profit",
+            "question":"Ordinary Business profit label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        }
+    ],
+    "1065_k1":[
+        {
+            "key": "tax_year",
+            "question":"For calendar year, or tax year label",
+            "search_coords": "[0, 0, 1, 0.25]",
+            "target_coords": "[x1, y1, x2, y2]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "business_name",
+            "question":"Partnership's name, address, city",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1, y2, 0.5, y2+0.05]",
+            "prep": "lambda x: x[0]"
+        },
+        {
+            "key": "shareholder_name",
+            "question":"Name, address, city, state for partner",
+            "search_coords": "[0, 0.25, 1, 0.6]",
+            "target_coords": "[x1, y2, 0.5, y2+0.05]",
+            "prep": "lambda x: x[0]"
+        },
+        {
+            "key": "ownership_pct",
+            "question":"Ending",
+            "search_coords": "[0, 0.4, 0.5, 0.7]",
+            "target_coords": "[x1, y2, 0.48, y2+(3*(y2-y1))]",
+            "prep": "lambda x: x[0]"
+        }
+    ],
+    "1065_bal_sheet":[
+        {
+            "key": "tax_year",
+            "question":"Form 1120",
+            "search_coords": "[0, 0, 1, 0.25]",
+            "target_coords": "[x1, y1, x2, y2]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "beginning_cash",
+            "question":"1 Cash",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.57, y1-0.005, 0.72, y2+0.005]"
+        },
+        {
+            "key": "ending_cash",
+            "question":"1 Cash",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_accounts_receivable",
+            "question":"Less allowance for bad debts",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.57, y1-0.005, 0.72, y2+0.005]"
+        },
+        {
+            "key": "ending_accounts_receivable",
+            "question":"Less allowance for bad debts",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_inventories",
+            "question":"Inventories",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.57, y1-0.005, 0.72, y2+0.005]"
+        },
+        {
+            "key": "ending_inventories",
+            "question":"Inventories",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_total_assets",
+            "question":"Total Assets",
+            "search_coords": "[0, 0.3, 1, 0.7]",
+            "target_coords": "[0.57, y1-0.005, 0.72, y2+0.005]"
+        },
+        {
+            "key": "ending_total_assets",
+            "question":"Total Assets",
+            "search_coords": "[0, 0.3, 1, 0.7]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_accounts_payable",
+            "question":"Accounts Payable",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.57, y1-0.005, 0.72, y2+0.005]"
+        },
+        {
+            "key": "ending_accounts_payable",
+            "question":"Accounts Payable",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_notes_payable",
+            "question":"payable in less than 1 year",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.57, y1-0.005, 0.72, y2+0.005]"
+        },
+        {
+            "key": "ending_notes_payable",
+            "question":"payable in less than 1 year",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_other_current_liabilities",
+            "question":"Other current liabilities",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.57, y1-0.005, 0.72, y2+0.005]"
+        },
+        {
+            "key": "ending_other_current_liabilities",
+            "question":"Other current liabilities",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        },
+        {
+            "key": "beginning_total_liabilities",
+            "question":"Total Liabilities and Shareholder",
+            "search_coords": "[0, 0.6, 1, 1]",
+            "target_coords": "[0.57, y1-0.005, 0.72, y2+0.005]"
+        },
+        {
+            "key": "ending_total_liabilities",
+            "question":"Total Liabilities and Shareholder",
+            "search_coords": "[0, 0.6, 1, 1]",
+            "target_coords": "[0.8, y1-0.005, 1, y2+0.005]"
+        }
+    ],
+    "1120_p1":[
+        {
+            "key": "tax_year",
+            "question":"Calendar Year or tax year",
+            "target_coords": "[x1, y1, x2, y2]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "business_name",
+            "question":"Line with the word 'Name' in it",
+            "target_coords": "[x1-0.005, y2, 0.7, y2+(y2-y1)]"
+        },
+        {
+            "key": "street_address",
+            "question":"Number street and room label.",
+            "target_coords": "[x1-0.005, y2, 0.7, y2+(y2-y1)]"
+        },
+        {
+            "key": "city_state",
+            "question":"City or town, state",
+            "target_coords": "[x1-0.005, y2, 0.7, y2+(y2-y1)]"
+        },
+        {
+            "key": "ein",
+            "question":"Employer Identification Number",
+            "target_coords": "[x1-0.005, y2, 1, y2+(y2-y1)]"
+        },
+        {
+            "key": "inception_date",
+            "question":"Date Incorporated",
+            "target_coords": "[x1-0.005, y2, 1, y2+(1.5*(y2-y1))]"
+        },
+        {
+            "key": "gross_revenue",
+            "question":"Line with the word 'Balance' in it",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "cost_of_goods_sold",
+            "question":"Cost of goods sold label",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "gross_profit",
+            "question":"'Gross Profit label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "officers_compensation",
+            "question":"Officers Compensation label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "interest",
+            "question":"'Interest' label for interest paid.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "depreciation",
+            "question":"Depreciation from Form",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "total_deductions",
+            "question":"Total deductions label.",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "net_profit",
+            "question":"Taxable income before",
+            "search_coords": "[0, 0.5, 1, 0.8]",
+            "target_coords": "[0.85, y1, 1, y2]"
+        }
+    ],
+    "1120_bal_sheet":[
+        {
+            "key": "tax_year",
+            "question":"Form 1120",
+            "search_coords": "[0, 0, 1, 0.25]",
+            "target_coords": "[x1, y1, x2, y2]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "beginning_cash",
+            "question":"Cash",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[0.505, y1-0.0025, 0.7, y2+0.0025]"
+        },
+        {
+            "key": "ending_cash",
+            "question":"Cash",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[0.8, y1-0.0025, 1, y2+0.0025]"
+        },
+        {
+            "key": "beginning_accounts_receivable",
+            "question":"Less allowance for bad debts",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[0.505, y1-0.0025, 0.7, y2+0.0025]"
+        },
+        {
+            "key": "ending_accounts_receivable",
+            "question":"Less allowance for bad debts",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[0.8, y1-0.0025, 1, y2+0.0025]"
+        },
+        {
+            "key": "beginning_inventories",
+            "question":"Inventories or inventory",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[0.505, y1-0.0025, 0.7, y2+0.0025]"
+        },
+        {
+            "key": "ending_inventories",
+            "question":"Inventories or inventory",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[0.8, y1-0.0025, 1, y2+0.0025]"
+        },
+        {
+            "key": "beginning_total_assets",
+            "question":"Total assets or assels",
+            "search_coords": "[0, 0.3, 0.5, 1]",
+            "target_coords": "[0.505, y1-0.0025, 0.7, y2+0.0025]",
+            "ignore_words": "['Retain','Other','Intangible','Land']"
+        },
+        {
+            "key": "ending_total_assets",
+            "question":"Total assets or assels",
+            "search_coords": "[0, 0.3, 0.5, 1]",
+            "target_coords": "[0.8, y1-0.0025, 1, y2+0.0025]",
+            "ignore_words": "['Retain','Other','Intangible','Land']"
+        },
+        {
+            "key": "beginning_accounts_payable",
+            "question":"Accounts Payable",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.505, y1-0.0025, 0.7, y2+0.0025]"
+        },
+        {
+            "key": "ending_accounts_payable",
+            "question":"Accounts Payable",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.8, y1-0.0025, 1, y2+0.0025]"
+        },
+        {
+            "key": "beginning_notes_payable",
+            "question":"payable in less than 1 year",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.505, y1-0.0025, 0.7, y2+0.0025]"
+        },
+        {
+            "key": "ending_notes_payable",
+            "question":"payable in less than 1 year",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.8, y1-0.0025, 1, y2+0.0025]"
+        },
+        {
+            "key": "beginning_other_current_liabilities",
+            "question":"Other current liabilities",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.5, y1-0.0025, 0.7, y2+0.0025]"
+        },
+        {
+            "key": "ending_other_current_liabilities",
+            "question":"Other current liabilities",
+            "search_coords": "[0, 0.3, 1, 1]",
+            "target_coords": "[0.8, y1-0.0025, 1, y2+0.0025]"
+        },
+        {
+            "key": "beginning_total_liabilities",
+            "question":"Total Liabilities and Shareholder Equity",
+            "search_coords": "[0, 0.5, 0.5, 0.8]",
+            "target_coords": "[0.5, y1-0.0025, 0.7, y2+0.0025]"
+        },
+        {
+            "key": "ending_total_liabilities",
+            "question":"Total Liabilities and Shareholder Equity",
+            "search_coords": "[0, 0.5, 0.5, 0.8]",
+            "target_coords": "[0.8, y1-0.0025, 1, y2+0.0025]"
+        }
+    ],
+    "1040_p1":[
+        {
+            "key": "tag_foreign_country_name",
+            "question":"Foreign country name",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1, y1, x2, y2]"
+        },
+        {
+            "key": "tax_year",
+            "question":"For the year",
+            "search_coords": "[0, 0, 1, 0.25]",
+            "target_coords": "[x1, y1, x2, y2]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "person1_full_name",
+            "question":"Your first name and middle initial",
+            "search_coords": "[0, 0, 1, 0.25]",
+            "target_coords": "[x1-0.005, y2, 0.75, label_data['person2_full_name']['label_bbox'][1]]"
+        },
+        {
+            "key": "person1_ssn",
+            "question":"Your social security number label",
+            "search_coords": "[0, 0, 1, 0.2]",
+            "target_coords": "[x1-0.005, y2, 1, y2+(1.5*(y2-y1))]"
+        },
+        {
+            "key": "person2_full_name",
+            "question":"If joint return spouse first name",
+            "search_coords": "[0, 0, 1, 0.25]",
+            "target_coords": "[x1-0.005, y2, 0.75, label_data['street_address']['label_bbox'][1]]"
+        },
+        {
+            "key": "person2_ssn",
+            "question":"Spouse social security number",
+            "search_coords": "[0, 0, 1, 0.25]",
+            "target_coords": "[x1-0.005, y2, 1, y2+(1.5*(y2-y1))]"
+        },
+        {
+            "key": "street_address",
+            "question":"Home address number and street",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1-0.005, y2, 0.6, label_data['city']['label_bbox'][1]]"
+        },
+        {
+            "key": "city",
+            "question":"City town post office",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1-0.005, y2, 0.5, y2+(1.5*(y2-y1))]"
+        },
+        {
+            "key": "state",
+            "question":"State",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1-0.005, y2, x2+0.03, y2+(1.5*(y2-y1))]"
+        },
+        {
+            "key": "zip",
+            "question":"Zip code",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1-0.005, y2, x2+0.03, y2+(1.5*(y2-y1))]"
+        },
+        {
+            "key": "w2_income",
+            "question":"Total amount from form W2",
+            "search_coords": "[0, 0.25, 1, 0.75]",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "adj_gross_income",
+            "question":"Adjusted gross income",
+            "search_coords": "[0, 0.5, 1, 1]",
+            "target_coords": "[0.85, y1, 1, y2]"
+        }
+    ],
+    "1040_sch_c":[
+        {
+            "key": "tax_year",
+            "question":"OMB",
+            "search_coords": "[0,0,1,0.2]",
+            "target_coords": "[x1,y2,1,y2+0.04]",
+            "prep": "lambda x: ''.join(c for c in x if c.isdigit())"
+        },
+        {
+            "key": "owner_name",
+            "question":"Name of proprietor",
+            "search_coords": "[0,0,1,0.5]",
+            "target_coords": "[x1-0.005, y2, 0.6, y2+(y2-y1)]"
+        },
+        {
+            "key": "business_name",
+            "question":"Business name",
+            "search_coords": "[0,0,1,0.5]",
+            "target_coords": "[x1-0.03, y2, 0.6, y2+(y2-y1)]"
+        },
+        {
+            "key": "street_address",
+            "question":"Business address suite",
+            "search_coords": "[0,0,1,0.5]",
+            "target_coords": "[x2+0.03, y1, label_data['ein']['label_bbox'][0], y2]"
+        },
+        {
+            "key": "city_state",
+            "question":"City town or post",
+            "search_coords": "[0,0,1,0.5]",
+            "target_coords": "[x2+0.03, y1, label_data['ein']['label_bbox'][0], y2]"
+        },
+        {
+            "key": "owner_ssn",
+            "question":"Social security number",
+            "search_coords": "[0,0,1,0.5]",
+            "target_coords": "[x1-0.005, y2, 1, y2+(1.5*(y2-y1))]"
+        },
+        {
+            "key": "ein",
+            "question":"Employer ID Number EIN",
+            "search_coords": "[0,0,1,0.5]",
+            "target_coords": "[x1-0.005, y2, 1, y2+(1.5*(y2-y1))]"
+        },
+        {
+            "key": "gross_reveue",
+            "question":"Gross Receipts or Sales",
+            "search_coords": "[0, 0, 1, 1]",
+            "target_coords": "[0.8, y1, 1, y2+0.0125]"
+        },
+        {
+            "key": "cost_of_goods_sold",
+            "question":"Cost of Goods Sold",
+            "search_coords": "[0, 0, 1, 1]",
+            "target_coords": "[0.8, y1, 1, y2]"
+        },
+        {
+            "key": "gross_profit",
+            "question":"Gross Profit Subtract",
+            "search_coords": "[0, 0, 1, 1]",
+            "target_coords": "[0.8, y1, 1, y2]"
+        },
+        {
+            "key": "depreciation",
+            "question":"Depreciation and",
+            "search_coords": "[0, 0, 1, 1]",
+            "target_coords": "[0.31, y2, 0.48, y2+0.04]"
+        },
+        {
+            "key": "interest_mortgage",
+            "question":"Mortgage paid to banks",
+            "search_coords": "[0, 0, 1, 1]",
+            "target_coords": "[0.31, y1, 0.48, y2]"
+        },
+        {
+            "key": "interest_other",
+            "question":"Other",
+            "search_coords": "[0, 0.5, 0.5, 1]",
+            "target_coords": "[0.31, y1, 0.48, y2]",
+            "ignore_words": "['Insur']"
+        },
+        {
+            "key": "taxes_licenses",
+            "question":"Taxes and licenses",
+            "search_coords": "[0.5, 0.25, 1, 1]",
+            "target_coords": "[x2 + 0.15, y1, 1, y2]"
+        },
+        {
+            "key": "total_deductions",
+            "question":"Total Expenses before",
+            "search_coords": "[0, 0.5, 1, 1]",
+            "target_coords": "[0.85, y1, 1, y2]"
+        },
+        {
+            "key": "net_profit",
+            "question":"Tentative profit loss",
+            "search_coords": "[0, 0.5, 1, 1]",
+            "target_coords": "[0.85, y1, 1, y2]"
+        }
+        
+        
+    ],
+    "acord_28":[
+        {
+            "key": "tag_addl_insured",
+            "question":"Additional named insured",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x2, y1, x2, y2]"
+        },
+        {
+            "key": "tag_effective_date",
+            "question":"Effective date",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x2, y1, x2, y2]"
+        },
+        {
+            "key": "tag_expiration_date",
+            "question":"Expiration date",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x2, y1, x2, y2]"
+        },
+        {
+            "key": "tag_policy_number",
+            "question":"Policy Number",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x2, y1, x2, y2]"
+        },
+        {
+            "key": "tag_deductible",
+            "question":"DED",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[x2, y1, x2, y2]"
+        },
+        {
+            "key": "tag_lender_loss_payable",
+            "question":"Lenders Loss Payable",
+            "search_coords": "[0, 0.75, 0.5, 1]",
+            "target_coords": "[x1, y1, x2, y2]"
+        },
+        {
+            "key": "tag_acord_form",
+            "question":"Acord 28",
+            "search_coords": "[0, 0.75, 0.5, 1]",
+            "target_coords": "[x1, y1, x2, y2]"
+        },
+        {
+            "key": "tag_bpp",
+            "question":"Business Personal Property",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[x1, y1, x2, y2]"
+
+        },
+        {
+            "key": "named_insured",
+            "question":"Named insured and address",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1, y2, label_data['tag_effective_date']['label_bbox'][0], label_data['tag_addl_insured']['label_bbox'][1]]"
+        },
+        {
+            "key": "business_name",
+            "question":"Company name and address",
+            "search_coords": "[0, 0, 1, 0.2]",
+            "target_coords": "[x1, y2, 1, y2+(5*(y2-y1))]",
+            "prep": "lambda x: [s for s in x]"
+
+        },  
+        {
+            "key": "effective_date",
+            "question":"Effective date",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1, y2, label_data['tag_expiration_date']['label_bbox'][0] - 0.005, y2+(y2-y1)]"
+        },
+        {
+            "key": "expiration_date",
+            "question":"Expiration date",
+            "search_coords": "[0, 0, 1, 0.5]",
+            "target_coords": "[x1, y2, label_data['tag_policy_number']['label_bbox'][0] - 0.005, y2+(y2-y1)]"
+        },
+        {
+            "key": "coverage_amount",
+            "question":"Commercial Property Coverage Amount",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[x2, y1, label_data['tag_deductible']['label_bbox'][0], y2]"
+        },
+        {
+            "key": "policy_deductible",
+            "question":"DED:",
+            "search_coords": "[0, 0, 1, 0.6]",
+            "target_coords": "[x2, y1, 1, y2]"
+        },
+        {
+            "key": "lenders_loss_payable_check",
+            "question":"Lenders Loss Payable",
+            "search_coords": "[0, 0.5, 0.5, 1]",
+            "target_coords": "[x1, y1, x2, y2]"
+        },
+        {
+            "key": "named_additional_interest",
+            "question":"Name And Address",
+            "search_coords": "[0, 0.5, 0.5, 1]",
+            "target_coords": "[x1, y2, 0.5, label_data['tag_acord_form']['label_bbox'][1]]",
+            "prep": "lambda x: [s for s in x]"
+
+        }
+    ],
+    "acord_25":[
+    ],
+    "unknown":[],
+    "unknown_text_type":[],
+    "unknown_tax_form_type":[],
+    "drivers_license":[],
+    "passport":[],
+    "lease_document":[],
+    "certificate_of_good_standing":[],
+    "business_license":[]
+}

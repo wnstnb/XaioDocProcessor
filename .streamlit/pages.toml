@@ -1,0 +1,19 @@
+[[pages]]
+path = "markdown.py"
+name = "Readme"
+icon = "📔"
+
+[[pages]]
+name = "Features"
+icon = ""
+is_section = true
+
+[[pages]]
+path = "document_ui.py"
+name = "Document UI"
+icon = "🗃️"
+
+[[pages]]
+path = "pages/metrics_ui.py"
+name = "Metrics UI"
+icon = "📊"

@@ -1,0 +1,210 @@
+[
+  {
+    "id": "industry_code",
+    "coords": [
+      0.10000000000000002,
+      0.175
+    ],
+    "index": 110
+  },
+  {
+    "id": "business_name",
+    "coords": [
+      0.287,
+      0.13
+    ],
+    "index": 111
+  },
+  {
+    "id": "street_address",
+    "coords": [
+      0.287,
+      0.16
+    ],
+    "index": 112
+  },
+  {
+    "id": "city_state",
+    "coords": [
+      0.287,
+      0.19
+    ],
+    "index": 113
+  },
+  {
+    "id": "date",
+    "coords": [
+      0.7799999999999999,
+      0.16
+    ],
+    "index": 114
+  },
+  {
+    "id": "ein",
+    "coords": [
+      0.7799999999999999,
+      0.13
+    ],
+    "index": 115
+  },
+  {
+    "id": "Gross Revenue",
+    "coords": [
+      0.8544270833333334,
+      0.287
+    ],
+    "index": 116
+  },
+  {
+    "id": "Cost of Goods Sold",
+    "coords": [
+      0.8544270833333334,
+      0.303
+    ],
+    "index": 117
+  },
+  {
+    "id": "Gross Profit",
+    "coords": [
+      0.8557291666666668,
+      0.319
+    ],
+    "index": 118
+  },
+  {
+    "id": "Gross Income",
+    "coords": [
+      0.85703125,
+      0.36504113614103817
+    ],
+    "index": 119
+  },
+  {
+    "id": "Compensation of Officers",
+    "coords": [
+      0.8583333333333334,
+      0.382
+    ],
+    "index": 120
+  },
+  {
+    "id": "Salaries and Wages",
+    "coords": [
+      0.8583333333333334,
+      0.398
+    ],
+    "index": 121
+  },
+  {
+    "id": "Repairs",
+    "coords": [
+      0.8596354166666668,
+      0.41304113614103816
+    ],
+    "index": 122
+  },
+  {
+    "id": "Bad Debts",
+    "coords": [
+      0.8596354166666668,
+      0.42904113614103817
+    ],
+    "index": 123
+  },
+  {
+    "id": "Rents",
+    "coords": [
+      0.8596354166666668,
+      0.446
+    ],
+    "index": 124
+  },
+  {
+    "id": "Taxes",
+    "coords": [
+      0.8596354166666668,
+      0.46
+    ],
+    "index": 125
+  },
+  {
+    "id": "Interest",
+    "coords": [
+      0.8609375,
+      0.47502056807051907
+    ],
+    "index": 126
+  },
+  {
+    "id": "Depreciation",
+    "coords": [
+      0.8609375,
+      0.4910205680705191
+    ],
+    "index": 127
+  },
+  {
+    "id": "Depletion",
+    "coords": [
+      0.8609375,
+      0.5070205680705191
+    ],
+    "index": 128
+  },
+  {
+    "id": "Advertising",
+    "coords": [
+      0.8622395833333334,
+      0.523
+    ],
+    "index": 129
+  },
+  {
+    "id": "Pension",
+    "coords": [
+      0.8622395833333334,
+      0.538
+    ],
+    "index": 130
+  },
+  {
+    "id": "Employee Benefits",
+    "coords": [
+      0.8622395833333334,
+      0.553
+    ],
+    "index": 131
+  },
+  {
+    "id": "Energy Efficiency",
+    "coords": [
+      0.8622395833333334,
+      0.569
+    ],
+    "index": 132
+  },
+  {
+    "id": "Other Deductions",
+    "coords": [
+      0.8609375,
+      0.584
+    ],
+    "index": 133
+  },
+  {
+    "id": "Total Deductions",
+    "coords": [
+      0.8609375,
+      0.6000205680705191
+    ],
+    "index": 134
+  },
+  {
+    "id": "Net Income",
+    "coords": [
+      0.8622395833333334,
+      0.6160205680705191
+    ],
+    "index": 135
+  }
+]

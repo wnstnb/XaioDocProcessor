@@ -1,8 +1,39 @@
-torch>=2.0.0
-transformers>=4.30.0
-pdf2image>=1.16.3
-Pillow>=9.5.0
-pandas>=2.0.0
-numpy>=1.24.0
+# git+https://github.com/huggingface/transformers.git@21f6f58721dd9154357576be6de54eefef1f1818
+# transformers
+transformers[torch]
+torch
+torchvision 
+torchaudio
+pdf2image
+PyMuPDF
+Pillow
+paddlepaddle-gpu
+paddleocr
+pandas
+# numpy==1.23.5
+numpy
 pytesseract
 PyPDF2
+streamlit
+streamlit-drawable-canvas
+# torch==2.2.1
+# torchvision
+opencv-python
+albumentations
+scikit-learn
+faker
+datasets
+# --find-links https://www.paddlepaddle.org.cn/packages/stable/cu118/
+# paddlepaddle-gpu==3.0.0b1
+evaluate
+# sentence-transformers
+# clipboard
+# st-copy-to-clipboard
+gensim
+nltk
+rapidfuzz
+google-genai>=1
+gradio
+streamlit-markdown
+# nvidia-cudnn-cu12
+# distutils

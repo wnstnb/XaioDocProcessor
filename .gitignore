@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# Other extensions
+*.png
+*.pdf
+*.jpg
+*.jpeg
+
 # Distribution / packaging
 .Python
 build/
@@ -49,6 +55,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+.old
 cover/
 
 # Translations
@@ -124,6 +131,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+*.venv*
 env/
 venv/
 ENV/
