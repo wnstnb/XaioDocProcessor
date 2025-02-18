@@ -92,15 +92,6 @@ def init_db():
 
 def store_df_to_db(df, table_name):
     conn = sqlite3.connect('documents.db')
-    # Convert non-serializable columns to JSON strings
-    # convert_these = [
-    #     'lines',
-    #     'words',
-    #     'bboxes',
-    #     'normalized_bboxes',
-    #     'tokens',
-    #     'words_for_clf'
-    # ]
     df1 = df.copy()
     for col in df1.columns:
         if df1[col].apply(lambda x: isinstance(x, (list, dict, set))).any():
@@ -130,57 +121,110 @@ def process_pdf(upload_path):
 upload_dir = "uploaded_samples"
 os.makedirs(upload_dir, exist_ok=True)
 
+conn = sqlite3.connect('documents.db')
+
+# List of unique filenames
+query = '''
+select distinct filename from pages order by created_at desc
+'''
+all_files = pd.read_sql_query(query, conn)
+
 # Move the file uploader to the sidebar
 with st.sidebar:
+    clear_button = st.button("♻️ Clear Cache", type="primary")
+    if clear_button:
+        clear_cache()
+    
     uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
     # Add a button to clear cache
-    if st.button("Clear Cache"):
-        clear_cache()
+    
+    selected_file = st.selectbox("Select a File", options=all_files['filename'].values, index=None)
+    
 
-if not uploaded_file:
-    st.info("👈 Upload a PDF or Image in the sidebar to get started.")
+if not uploaded_file or selected_file:
+    st.info("👈 Upload a PDF/Image, or Select a File to view in the sidebar to get started.")
 
 if uploaded_file:
+    dt_start = datetime.now()
     # Save the uploaded file to 'uploaded_samples'
     upload_path = os.path.join(upload_dir, uploaded_file.name)
     with open(upload_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-
-    dt_start = datetime.now()
-    # Use cached results for processing the PDF
-    # with st.spinner("Processing PDF..."):
     df_pages, df_extracted, df_info = process_pdf(upload_path)
 
+if selected_file:
+    dt_start = datetime.now()
+    # Get stored results
+    query = f'''
+    with p1 as (
+        select *, 
+        row_number() over (partition by preprocessed order by created_at desc) rn
+        from pages
+        where filename = '{selected_file}'
+    )
+    
+    select * from p1 where rn = 1  
+    '''
+    df_pages = pd.read_sql_query(query, conn)
+
+    query = f'''
+    with e3 as (
+        select p.filename base_file, e2.*, row_number() over (partition by e2.filename, e2.key order by created_at desc) rn 
+        from extracted2 e2
+        join (select filename, preprocessed from pages) p on e2.filename = p.preprocessed
+        where p.filename = '{selected_file}'
+    )
+    select * from e3 where rn = 1
+    '''
+    df_extracted = pd.read_sql_query(query, conn)
+
+    query = f'''
+    with i1 as (
+        select p.filename base_file, i.*, row_number() over (partition by i.filename order by created_at desc) rn 
+        from call_info i 
+        join (select filename, preprocessed from pages) p on i.filename = p.preprocessed
+        where p.filename = '{selected_file}'
+    )
+    select * from i1 where rn = 1
+    '''
+    df_info = pd.read_sql_query(query, conn)
+
+if uploaded_file or selected_file:
     # if df_extracted is not None:
     dt_end = datetime.now()
     time_taken = dt_end - dt_start
-    page_nums = df_extracted['page_num'].unique() if df_extracted is not None else []
+    page_nums = sorted(df_extracted['page_num'].unique()) if df_extracted is not None else []
     st.success(f'Doc pages: {len(df_pages)} | Extracted pages: {len(page_nums)} | Time taken: {time_taken} | Per page: {time_taken/max(1,len(page_nums))}')
     # Add a page navigation sidebar
-    selected_page = st.sidebar.selectbox("Select a Page", options=page_nums)
-
-    with st.expander("Info"):
-        st.dataframe(df_info)
-    with st.expander("Pages"):
-        st.dataframe(df_pages)
-    # with st.expander("Pages"):
-    #     st.dataframe(df_pages.dtypes)
-    with st.expander("Extracted Data"):
-        st.dataframe(df_extracted)
-    # with st.expander("Extracted Data"):
-    #     st.dataframe(df_extracted.dtypes)
-    with st.expander("Page Words"):
-        st.text(df_pages['lines'].values)
     
     col1, col2 = st.columns(2)
-    with col1:
+
+    with col1:  
+        selected_page = st.selectbox("Select a Page", 
+                                     options=page_nums, 
+                                     format_func=lambda x: f'Page {x} - {df_extracted[df_extracted["page_num"] == x].iloc[0]["page_label"]}' if x in df_extracted['page_num'].values else f'Page {x}', 
+                                     index=0)
         # Display extracted data for the selected page
         st.write(f"Extracted Data for Page {selected_page}:")
         page_data = df_extracted[df_extracted['page_num'] == selected_page]
-        st.dataframe(page_data[['key','value','page_label','page_num']])
+        st.dataframe(page_data[['key','value','page_label','page_num']], hide_index=True, use_container_width=True)
 
     with col2:
-        # Display bounding boxes for the selected page
+        show_debug_info = st.toggle("Show Debug Info", value=False)
+        if show_debug_info:
+            with st.expander("Info"):
+                st.dataframe(df_info, hide_index=True)
+            with st.expander("Pages"):
+                st.dataframe(df_pages)
+            # with st.expander("Pages"):
+            #     st.dataframe(df_pages.dtypes)
+            with st.expander("Extracted Data"):
+                st.dataframe(df_extracted)
+            # with st.expander("Extracted Data"):
+            #     st.dataframe(df_extracted.dtypes)
+            with st.expander("Page Words"):
+                st.text(df_pages['lines'].values)
+        # Display image selected page
         st.write(f"Image for Page {selected_page}:")
         selected_page_row = df_extracted[df_extracted['page_num'] == selected_page].iloc[0]
         print(selected_page_row)
@@ -188,12 +232,3 @@ if uploaded_file:
 
         if annotated_image_path:
             st.image(annotated_image_path)
-
-    # else:
-    #     st.write("No data extracted from the uploaded PDF.")
-
-# if __name__ == "__main__":
-# # pg.run()
-    
-#     main()
-

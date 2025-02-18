@@ -17,3 +17,8 @@ icon = "🗃️"
 path = "pages/metrics_ui.py"
 name = "Metrics UI"
 icon = "📊"
+
+[[pages]]
+path = "chat_ui.py"
+name = "Chat UI"
+icon = "🗨️"

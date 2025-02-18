@@ -1,0 +1,204 @@
+import os
+import streamlit as st
+import sqlite3
+import pandas as pd
+import json
+import re
+from datetime import datetime
+from openai import OpenAI
+
+# Initialize the OpenAI client with the updated API
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+# Define the database schema for reference (for generating SQL queries)
+SCHEMA = """
+Table: pages(
+    filename TEXT,
+    preprocessed TEXT,
+    page_number INTEGER,
+    image_width REAL,
+    image_height REAL,
+    lines TEXT,
+    words TEXT,
+    bboxes TEXT,
+    normalized_bboxes TEXT,
+    tokens TEXT,
+    words_for_clf TEXT,
+    processing_time REAL,
+    clf_type TEXT,
+    page_label TEXT,
+    page_confidence REAL,
+    created_at DATETIME default current_timestamp
+)
+Table: extracted2(
+    key TEXT,
+    value TEXT,
+    filename TEXT, 
+    page_num INTEGER,
+    created_at DATETIME default current_timestamp
+)
+"""
+
+# --- Conversation Persistence Functions ---
+
+def init_conversations_table():
+    """Initialize a table to store conversations."""
+    conn = sqlite3.connect("documents.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            conversation TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_conversation(conversation, title="Conversation"):
+    """Save a conversation (list of messages) to the database."""
+    conn = sqlite3.connect("documents.db")
+    cursor = conn.cursor()
+    conversation_json = json.dumps(conversation)
+    # Use current timestamp as title if no title is provided
+    if title == "Conversation":
+        title = f"Conversation on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    cursor.execute("INSERT INTO conversations (title, conversation) VALUES (?, ?)", (title, conversation_json))
+    conn.commit()
+    conn.close()
+
+def load_conversations():
+    """Load all saved conversations from the database."""
+    conn = sqlite3.connect("documents.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, conversation, created_at FROM conversations ORDER BY created_at DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    conversations = []
+    for row in rows:
+        conversations.append({
+            "id": row[0],
+            "title": row[1],
+            "conversation": json.loads(row[2]),
+            "created_at": row[3]
+        })
+    return conversations
+
+# Initialize conversation table on app start
+init_conversations_table()
+
+# --- Helper Functions for SQL Conversion ---
+
+def cleanup_sql_query(raw_query: str) -> str:
+    # Remove triple backticks or any code fences
+    cleaned = re.sub(r"```(?:sql)?", "", raw_query)
+    cleaned = re.sub(r"```", "", cleaned)
+    return cleaned.strip()
+
+def convert_to_sql(nl_query: str, schema: str) -> str:
+    examples = """
+    Examples of valid SQLite queries:
+
+    1) "How many tables are in the DB?"
+    SELECT COUNT(*) AS table_count FROM sqlite_master WHERE type='table';
+
+    2) "What are the table names?"
+    SELECT name FROM sqlite_master WHERE type='table';
+
+    3) "List all pages from the pages table."
+    SELECT * FROM pages;
+    """
+    prompt = f"""You are an expert data scientist.
+You are given a SQLite database with the following schema:
+{schema}
+
+You can only produce valid SELECT queries. If the user asks about tables, 
+use 'sqlite_master' to find table names or counts. For example:
+{examples}
+
+Write a SQL query to answer the following question:
+\"\"\"{nl_query}\"\"\"
+Make sure your answer is a single valid SQL SELECT query. Do not include any commentary.
+"""
+    response = client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="gpt-4o",
+        temperature=0,
+    )
+    sql_query = response.choices[0].message.content.strip()
+    sql_query = cleanup_sql_query(sql_query)
+    if not sql_query.lower().startswith("select"):
+        raise ValueError("Generated query is not a SELECT query. Aborting for safety.")
+    return sql_query
+
+def run_sql_query(query: str) -> pd.DataFrame:
+    """Execute the given SQL query on the SQLite database and return the results as a DataFrame."""
+    conn = sqlite3.connect("documents.db")
+    try:
+        df = pd.read_sql_query(query, conn)
+    except Exception as e:
+        df = pd.DataFrame({"error": [str(e)]})
+    finally:
+        conn.close()
+    return df
+
+# --- Main Chat UI ---
+st.info('This is a chat interface with the database, focused on answering questions using SQL.')
+# Sidebar: Display saved conversations
+st.sidebar.header("Saved Conversations")
+saved_conversations = load_conversations()
+conversation_titles = [conv["title"] for conv in saved_conversations]
+
+selected_conv_title = st.sidebar.selectbox("Select a saved conversation", ["-- New Conversation --"] + conversation_titles)
+if selected_conv_title != "-- New Conversation --":
+    # Load the selected conversation into session_state
+    for conv in saved_conversations:
+        if conv["title"] == selected_conv_title:
+            st.session_state["chat_history"] = conv["conversation"]
+            break
+
+# Sidebar: Button to save current conversation
+if st.sidebar.button("Save Current Conversation"):
+    if "chat_history" in st.session_state and st.session_state["chat_history"]:
+        save_conversation(st.session_state["chat_history"])
+        st.sidebar.success("Conversation saved!")
+    else:
+        st.sidebar.warning("No conversation to save.")
+
+# Display chat history using Streamlit's chat message elements
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
+
+for message in st.session_state["chat_history"]:
+    role = message.get("role", "assistant")
+    content = message.get("message") or message.get("content") or ""
+    with st.chat_message(role):
+        st.markdown(content)
+
+# Get user input using the chat input widget
+user_input = st.chat_input("Enter your query about the documents...")
+if user_input:
+    # Append user message to chat history
+    st.session_state["chat_history"].append({"role": "user", "message": user_input})
+    with st.chat_message("user"):
+        st.markdown(user_input)
+    try:
+        with st.spinner("Generating SQL query..."):
+            sql_query = convert_to_sql(user_input, SCHEMA)
+        assistant_message = f"SQL Query: `{sql_query}`"
+        st.session_state["chat_history"].append({"role": "assistant", "message": assistant_message})
+        with st.chat_message("assistant"):
+            st.markdown(assistant_message)
+        with st.spinner("Running SQL query..."):
+            result_df = run_sql_query(sql_query)
+        result_text = result_df.to_string(index=False)
+        result_message = f"Result:\n```\n{result_text}\n```"
+        st.session_state["chat_history"].append({"role": "assistant", "message": result_message})
+        with st.chat_message("assistant"):
+            st.markdown(result_message)
+    except Exception as e:
+        error_message = f"Error generating SQL query: {e}"
+        st.session_state["chat_history"].append({"role": "assistant", "message": error_message})
+        with st.chat_message("assistant"):
+            st.markdown(error_message)

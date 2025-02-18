@@ -23,23 +23,17 @@ def extraction_performance():
 def page_performance():
     conn = sqlite3.connect('documents.db')
     query = '''
-    WITH page_data AS (
-        SELECT 
-            annotated_image_path,
-            page_label, 
-            count(key) total_keys,
-            sum(case when label_confidence != 0 then 1 else 0 end) as found_keys,
-            avg(label_confidence) as avg_conf
-        from extracted
-        left join pages on pages.filename = extracted.filename and pages.page_number = extracted.page_num
-        group by 1
+    with most_recent_runs as (
+        select page_label, 
+            preprocessed,
+            page_number,
+            page_score, 
+            row_number() over (partition by preprocessed order by created_at desc) as rn
+        from pages
     )
-    
-    select page_label, 
-        count(*) page_count, 
-        round(AVG(found_keys / total_keys) * 100, 2) avg_labels_found, 
-        AVG(avg_conf) agg_avg_conf 
-    from page_data
+    select page_label, count(*) page_count, avg(page_score) agg_avg_conf
+    from most_recent_runs
+    where rn = 1
     group by 1
     '''
     df_results = pd.read_sql_query(query, conn)
@@ -48,33 +42,28 @@ def page_performance():
 
 def clf_performance():
     conn = sqlite3.connect('documents.db')
-    query = '''
-    WITH page_data AS (
-        SELECT 
-            page_label, 
-            annotated_image_path,
-            count(key) total_keys,
-            sum(case when label_confidence != 0 then 1 else 0 end) as found_keys,
-            avg(label_confidence) as avg_conf
-        from extracted
-        left join pages on pages.preprocessed = extracted.annotated_image_path
-        group by 1
-    )
-    
-    select page_label, 
+    query = '''    
+    select clf_type, 
         count(*) page_count, 
-        round(AVG(found_keys / total_keys) * 100, 2) avg_labels_found, 
-        AVG(avg_conf) agg_avg_conf 
-    from page_data
+        AVG(page_score) agg_avg_conf
+    from pages
     group by 1
     '''
     df_results = pd.read_sql_query(query, conn)
     conn.close()
     st.dataframe(df_results)
 
-with st.expander("Page Performance"):
+st.info('This page shows performance metrics of classification and extraction methods.')
+
+with st.expander("Page Statistics"):
+    st.info('Performance by page (document) type.')
     page_performance()
 
-with st.expander("Extraction Performance"):
+with st.expander("Classifier Performance"):
+    st.info('Performance by Classifier')
+    clf_performance()
+
+with st.expander("Field Statistics"):
+    st.info('Performance by field')
     extraction_performance()
 
