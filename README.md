@@ -9,11 +9,13 @@ This application allows you to upload PDFs or images of specific document types,
 - **🔍 Data Extraction:** Extract structured data from the uploaded documents.
 - **🖼️ Image and Data Comparison:** View images and extracted data side by side.
 - **📊 Data Display:** Display the extracted data in a tabular format.
+- **💬 Text-to-SQL:** Interact with the database using a chat UI for a more intuitive experience.
 
 ## 🛠️ How It Works
 1. **Upload a File:** Use the file uploader in the sidebar to upload a PDF or image file.
 2. **Processing:** The uploaded file is processed using the Gemini 2.0 Flash API to extract structured data.
 3. **Display Results:** The extracted data is displayed in two columns: one for the output data and one for the image of the page.
+4. **Get Overall Stats:** Use natural language to interact with the database and get stats on performance and activity.
 
 ## 📋 Usage
 1. **Upload a File:**
@@ -116,6 +118,8 @@ X --> Y
 - **🤖 One-Shot Models Used:**
     - `facebook/bart-large-mnli` for text-based zero-shot classification.
     - `openai/clip-vit-base-patch32` for image-based zero-shot classification.
+    - `gemini-2.0-flash` for data extraction.
+    - `gpt-4o` for conversational NL-to-SQL conversion
 - **💾 Database:**
     - The application uses SQLite for storing extracted data and processing results.
 

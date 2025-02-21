@@ -11,31 +11,36 @@ from openai import OpenAI
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # Define the database schema for reference (for generating SQL queries)
-SCHEMA = """
+SCHEMA = r"""
 Table: pages(
-    filename TEXT,
-    preprocessed TEXT,
-    page_number INTEGER,
-    image_width REAL,
-    image_height REAL,
-    lines TEXT,
-    words TEXT,
-    bboxes TEXT,
-    normalized_bboxes TEXT,
-    tokens TEXT,
-    words_for_clf TEXT,
-    processing_time REAL,
-    clf_type TEXT,
-    page_label TEXT,
-    page_confidence REAL,
-    created_at DATETIME default current_timestamp
+    /* Table that stores raw information about each page in 
+    a document and information on whether/how each page was classified */
+    filename TEXT,          -- File name of the uploaded document
+    preprocessed TEXT,      -- File path of a page's final preprocessed image
+    page_number INTEGER,    -- Page number in the document
+    image_width REAL,       -- Width of the page image
+    image_height REAL,      -- Height of the page image
+    lines TEXT,             -- Extracted lines of text
+    words TEXT,             -- Extracted words
+    bboxes TEXT,            -- Bounding boxes of words   
+    normalized_bboxes TEXT, -- Normalized bounding boxes
+    tokens TEXT,            -- Extracted tokens
+    words_for_clf TEXT,     -- Words used for classification
+    processing_time REAL,   -- Time taken for processing
+    clf_type TEXT,          -- Type of classifier used
+    page_label TEXT,        -- Predicted label for the page
+    page_score REAL,        -- Confidence score for the label
+    created_at DATETIME default current_timestamp -- Timestamp of creation
 )
 Table: extracted2(
-    key TEXT,
-    value TEXT,
-    filename TEXT, 
-    page_num INTEGER,
-    created_at DATETIME default current_timestamp
+    /* Table stores extracted key-value pairs from the document
+    and contains structured information extracted from the pages
+    in the document. */
+    key TEXT,           -- Designated key extracted from the page (eg. first_name, gross_revenue, etc.)
+    value TEXT,         -- Extracted value corresponding to the key
+    filename TEXT,      -- Foreign key to pages.preprocessed
+    page_num INTEGER,   -- Page number in the document
+    created_at DATETIME default current_timestamp -- Timestamp of creation
 )
 """
 
@@ -109,11 +114,13 @@ def convert_to_sql(nl_query: str, schema: str) -> str:
     3) "List all pages from the pages table."
     SELECT * FROM pages;
     """
-    prompt = f"""You are an expert data scientist.
+    prompt = f"""You are an expert data scientist. You think step-by-step, considering all
+    relationships and meanings in the data and thoughtfully craft your SQL queries with precision.
 You are given a SQLite database with the following schema:
 {schema}
 
-You can only produce valid SELECT queries. If the user asks about tables, 
+You can only produce valid SELECT queries. For more complex queries, use 
+CTEs first to make sure you have what you need. If the user asks about tables, 
 use 'sqlite_master' to find table names or counts. For example:
 {examples}
 
@@ -128,7 +135,7 @@ Make sure your answer is a single valid SQL SELECT query. Do not include any com
     )
     sql_query = response.choices[0].message.content.strip()
     sql_query = cleanup_sql_query(sql_query)
-    if not sql_query.lower().startswith("select"):
+    if not sql_query.lower().startswith("select") and not sql_query.lower().startswith("with"):
         raise ValueError("Generated query is not a SELECT query. Aborting for safety.")
     return sql_query
 
@@ -175,7 +182,7 @@ for message in st.session_state["chat_history"]:
     content = message.get("message") or message.get("content") or ""
     with st.chat_message(role):
         st.markdown(content)
-
+# with st.container():
 # Get user input using the chat input widget
 user_input = st.chat_input("Enter your query about the documents...")
 if user_input:

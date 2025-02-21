@@ -37,9 +37,11 @@ st.markdown("""
     - `google-genai` for interacting with the Gemini 2.0 Flash API.
     - `paddleocr` for OCR processing.
     - `transformers` for text and image classification.
-- **🤖 One-Shot Models Used:**
+- **🤖 Models Used:**
     - `facebook/bart-large-mnli` for text-based zero-shot classification.
     - `openai/clip-vit-base-patch32` for image-based zero-shot classification.
+    - `gemini-2.0-flash` for data extraction.
+    - `gpt-4o` for conversational NL-to-SQL conversion
 - **💾 Database:**
     - The application uses SQLite for storing extracted data and processing results.
 """)
