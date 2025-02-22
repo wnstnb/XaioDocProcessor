@@ -1,6 +1,0 @@
-filename,page_number,meta_label,meta_confidence,detailed_label,detailed_confidence
-Sample1120S2023.pdf,1,tax_form,0.99999213,1120S_p1,0.820014
-Sample1120S2023.pdf,2,tax_form,0.99999845,unclassified_tax_form,0.9999821
-Sample1120S2023.pdf,3,tax_form,0.9999987,unclassified_tax_form,0.99999666
-Sample1120S2023.pdf,4,tax_form,1.0,1120S_p4,0.9312782
-Sample1120S2023.pdf,5,tax_form,1.0,unclassified_tax_form,0.9996773
