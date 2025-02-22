@@ -15,32 +15,47 @@ SCHEMA = r"""
 Table: pages(
     /* Table that stores raw information about each page in 
     a document and information on whether/how each page was classified */
-    filename TEXT,          -- File name of the uploaded document
-    preprocessed TEXT,      -- File path of a page's final preprocessed image
-    page_number INTEGER,    -- Page number in the document
-    image_width REAL,       -- Width of the page image
-    image_height REAL,      -- Height of the page image
-    lines TEXT,             -- Extracted lines of text
-    words TEXT,             -- Extracted words
-    bboxes TEXT,            -- Bounding boxes of words   
-    normalized_bboxes TEXT, -- Normalized bounding boxes
-    tokens TEXT,            -- Extracted tokens
-    words_for_clf TEXT,     -- Words used for classification
-    processing_time REAL,   -- Time taken for processing
-    clf_type TEXT,          -- Type of classifier used
-    page_label TEXT,        -- Predicted label for the page
-    page_score REAL,        -- Confidence score for the label
-    created_at DATETIME default current_timestamp -- Timestamp of creation
+    filename TEXT,          /* File name of the uploaded document */
+    preprocessed TEXT,      /* File path of a page's final preprocessed image */
+    page_number INTEGER,    /* Page number in the document */
+    image_width REAL,       /* Width of the page image */
+    image_height REAL,      /* Height of the page image */
+    lines TEXT,             /* Extracted lines of text */
+    words TEXT,             /* Extracted words */
+    bboxes TEXT,            /* Bounding boxes of words */
+    normalized_bboxes TEXT, /* Normalized bounding boxes */
+    tokens TEXT,            /* Extracted tokens */
+    words_for_clf TEXT,     /* Words used for classification */
+    processing_time REAL,   /* Time taken for processing */
+    clf_type TEXT,          /* Type of classifier used */
+    page_label TEXT,        /* Predicted label for the page */
+    page_score REAL,        /* Confidence score for the label */
+    created_at DATETIME default current_timestamp /* Timestamp of creation */
 )
 Table: extracted2(
     /* Table stores extracted key-value pairs from the document
-    and contains structured information extracted from the pages
-    in the document. */
-    key TEXT,           -- Designated key extracted from the page (eg. first_name, gross_revenue, etc.)
-    value TEXT,         -- Extracted value corresponding to the key
-    filename TEXT,      -- Foreign key to pages.preprocessed
-    page_num INTEGER,   -- Page number in the document
-    created_at DATETIME default current_timestamp -- Timestamp of creation
+       and contains structured information extracted from the pages
+       in the document. */
+    key TEXT,           /* Designated key extracted from the page (e.g., first_name, gross_revenue, etc.) */
+    value TEXT,         /* Extracted value corresponding to the key */
+    filename TEXT,      /* Foreign key to pages.preprocessed */
+    page_num INTEGER,   /* Page number in the document */
+    created_at DATETIME default current_timestamp /* Timestamp of creation */
+)
+Table: entities(
+    /* Table to store unique person or business entities */
+    entity_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT,         /* 'person' or 'business' */
+    entity_name TEXT,         /* Full name or business name */
+    additional_info TEXT,     /* JSON or additional metadata (e.g., normalized address, EIN, SSN) */
+    created_at DATETIME default current_timestamp /* Timestamp of creation */
+)
+Table: page_entity_crosswalk(
+    /* Table to link pages to entities (supports many-to-many relationships) */
+    crosswalk_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    page_id INTEGER,          /* Foreign key to pages (e.g., pages.id) */
+    entity_id INTEGER,        /* Foreign key to entities (entities.entity_id) */
+    created_at DATETIME default current_timestamp /* Timestamp of creation */
 )
 """
 
@@ -111,39 +126,73 @@ def convert_to_sql(nl_query: str, schema: str) -> str:
     2) "What are the table names?"
     SELECT name FROM sqlite_master WHERE type='table';
 
-    3) "List all pages from the pages table."
-    SELECT * FROM pages;
+    3) "[complex query] Show me all extracted data that we have on a person named something like notrealname."
+    SELECT e.entity_name, e.entity_type, e.additional_info, ex.key, ex.value 
+    FROM entities e 
+    JOIN page_entity_crosswalk pec 
+        ON e.entity_id = pec.entity_id 
+    JOIN pages p ON pec.page_id = p.rowid 
+    JOIN extracted2 ex ON p.preprocessed = ex.filename 
+        AND p.page_number = ex.page_num 
+        WHERE e.entity_type = 'person' AND lower(e.entity_name) LIKE '%notrealname%';
+
+    4) "How many pages have I run today?"
+    SELECT COUNT(DISTINCT filename) AS unique_documents_today FROM pages WHERE DATE(created_at) = DATE('now');
+
+    5) "How many unique documents have been uploaded today?"
+    SELECT COUNT(DISTINCT filename) AS unique_documents_today FROM pages WHERE DATE(created_at) = DATE('now');
     """
-    prompt = f"""You are an expert data scientist. You think step-by-step, considering all
-    relationships and meanings in the data and thoughtfully craft your SQL queries with precision.
-You are given a SQLite database with the following schema:
-{schema}
 
-You can only produce valid SELECT queries. For more complex queries, use 
-CTEs first to make sure you have what you need. If the user asks about tables, 
-use 'sqlite_master' to find table names or counts. For example:
-{examples}
+    prompt = f"""You are an expert data scientist. You think step-by-step, considering all relationships and meanings in the data, and you thoughtfully craft your SQL queries with precision.
+    You are given a SQLite database with the following schema:
+    {schema}
 
-Write a SQL query to answer the following question:
-\"\"\"{nl_query}\"\"\"
-Make sure your answer is a single valid SQL SELECT query. Do not include any commentary.
-"""
+    You can only produce valid SQLite SQL queries, including SELECT queries as well as CRUD operations (e.g., CREATE, UPDATE, DELETE, DROP).
+    If given a [complex query] tag, then take time to reconsider the schema as joining multiple tables is likely.
+    Use 'sqlite_master' to find table names or counts. For example:
+    {examples}
+
+    Write a SQL query to answer the following question or perform the requested operation:
+    \"\"\"{nl_query}\"\"\"
+    Make sure your answer is a single valid SQLite SQL query. Do not include any commentary.
+    """
+
     response = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="gpt-4o",
         temperature=0,
     )
+    allowed_prefixes = (
+        "select", 
+        "with", 
+        "insert", 
+        "update", 
+        "delete", 
+        "create", 
+        "drop", 
+        "alter", 
+        "desc", 
+        "show",
+        "pragma"
+    )
     sql_query = response.choices[0].message.content.strip()
+    print(sql_query)
     sql_query = cleanup_sql_query(sql_query)
-    if not sql_query.lower().startswith("select") and not sql_query.lower().startswith("with"):
-        raise ValueError("Generated query is not a SELECT query. Aborting for safety.")
+    if not sql_query.lower().startswith(allowed_prefixes):
+        raise ValueError("Generated query does not start with a valid SQL command. Aborting for safety.")
     return sql_query
 
 def run_sql_query(query: str) -> pd.DataFrame:
     """Execute the given SQL query on the SQLite database and return the results as a DataFrame."""
     conn = sqlite3.connect("documents.db")
     try:
-        df = pd.read_sql_query(query, conn)
+        if query.strip().lower().startswith(("select", "with")):
+            df = pd.read_sql_query(query, conn)
+        else:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            conn.commit()
+            df = pd.DataFrame({"result": ["Query executed successfully"]})
     except Exception as e:
         df = pd.DataFrame({"error": [str(e)]})
     finally:
@@ -182,7 +231,7 @@ for message in st.session_state["chat_history"]:
     content = message.get("message") or message.get("content") or ""
     with st.chat_message(role):
         st.markdown(content)
-# with st.container():
+
 # Get user input using the chat input widget
 user_input = st.chat_input("Enter your query about the documents...")
 if user_input:
@@ -197,15 +246,44 @@ if user_input:
         st.session_state["chat_history"].append({"role": "assistant", "message": assistant_message})
         with st.chat_message("assistant"):
             st.markdown(assistant_message)
-        with st.spinner("Running SQL query..."):
-            result_df = run_sql_query(sql_query)
-        result_text = result_df.to_string(index=False)
-        result_message = f"Result:\n```\n{result_text}\n```"
-        st.session_state["chat_history"].append({"role": "assistant", "message": result_message})
-        with st.chat_message("assistant"):
-            st.markdown(result_message)
+
+        # Check if the query is a CRUD operation and ask for confirmation
+        if sql_query.lower().startswith(("insert", "update", "delete", "create", "drop", "alter")):
+            st.session_state["pending_sql_query"] = sql_query
+            st.session_state["awaiting_confirmation"] = True
+            st.session_state["chat_history"].append({"role": "assistant", "message": "This operation will modify the database. Do you want to proceed? (yes/no)"})
+            with st.chat_message("assistant"):
+                st.markdown("This operation will modify the database. Do you want to proceed? (yes/no)")
+        else:
+            with st.spinner("Running SQL query..."):
+                result_df = run_sql_query(sql_query)
+            result_text = result_df.to_string(index=False)
+            result_message = f"Result:\n```\n{result_text}\n```"
+            st.session_state["chat_history"].append({"role": "assistant", "message": result_message})
+            with st.chat_message("assistant"):
+                st.markdown(result_message)
     except Exception as e:
         error_message = f"Error generating SQL query: {e}"
         st.session_state["chat_history"].append({"role": "assistant", "message": error_message})
         with st.chat_message("assistant"):
             st.markdown(error_message)
+
+# Handle confirmation input
+if "awaiting_confirmation" in st.session_state and st.session_state["awaiting_confirmation"]:
+    confirmation_input = st.chat_input("Please confirm the operation (yes/no):", key="confirmation")
+    if confirmation_input:
+        if confirmation_input.lower() == "yes":
+            with st.spinner("Running SQL query..."):
+                result_df = run_sql_query(st.session_state["pending_sql_query"])
+            result_text = result_df.to_string(index=False)
+            result_message = f"Result:\n```\n{result_text}\n```"
+            st.session_state["chat_history"].append({"role": "assistant", "message": result_message})
+            with st.chat_message("assistant"):
+                st.markdown(result_message)
+        else:
+            st.session_state["chat_history"].append({"role": "assistant", "message": "Operation cancelled by the user."})
+            with st.chat_message("assistant"):
+                st.markdown("Operation cancelled by the user.")
+        st.session_state["awaiting_confirmation"] = False
+        st.session_state["pending_sql_query"] = None
+        st.rerun()  # Rerun the app to clear the confirmation input

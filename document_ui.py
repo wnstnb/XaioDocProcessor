@@ -8,6 +8,8 @@ import sqlite3
 import json
 import pytz
 import numpy as np
+from entity_matcher import match_entities_for_file
+
 
 # st.set_page_config(
 #     page_title="Form Sage UI",
@@ -112,6 +114,10 @@ def process_pdf(upload_path):
     store_df_to_db(df_pages, 'pages')
     store_df_to_db(df_extracted, 'extracted2')
     store_df_to_db(df_info, 'call_info')
+
+    # Do matching
+    match_entities_for_file(os.path.basename(upload_path))
+
     return df_pages, df_extracted, df_info
 
 

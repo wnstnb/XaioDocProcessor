@@ -166,12 +166,15 @@ class Acord25(BaseModel):
 class DriversLicense(BaseModel):
     first_name: str = Field(description="First name of the person on the driver's license.")
     last_name: str = Field(description="Last name of the person on the driver's license.")
+    street_address: str = Field(description="Street address of the person on the driver's license.")
+    city_state_zip: str = Field(description="City, state, and zip code of the person on the driver's license.")
     exp_date: str = Field(description="Expiration date of the driver's license.")
     dob: str = Field(description="Date of birth of the person on the driver's license.")
 
 class Passport(BaseModel):
     first_name: str = Field(description="First name of the person on the passport.")
     last_name: str = Field(description="Last name of the person on the passport.")
+    country: str = Field(description="Country of the passport.")
     exp_date: str = Field(description="Expiration date of the passport.")
     dob: str = Field(description="Date of birth of the person on the passport.")
 

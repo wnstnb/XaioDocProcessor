@@ -22,6 +22,7 @@ from google import genai
 from pydantic import BaseModel, Field
 from gemini_models import get_model, extract_structured_data
 from tenacity import retry, wait_random_exponential
+from entity_matcher import match_entities_for_file
 
 
 
@@ -510,6 +511,7 @@ def process_file(fp):
             res['page_num'] = row['page_number']
             extraction_results.append(res)
             info_results.append(info)
+            match_entities_for_file(os.path.basename(fp))
 
     df_pages['clf_type'] = clf_types
     df_pages['page_label'] = clf_results

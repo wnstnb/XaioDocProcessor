@@ -10,6 +10,7 @@ This application allows you to upload PDFs or images of specific document types,
 - **🖼️ Image and Data Comparison:** View images and extracted data side by side.
 - **📊 Data Display:** Display the extracted data in a tabular format.
 - **💬 Text-to-SQL:** Interact with the database using a chat UI for a more intuitive experience.
+- **🔗 Entity Matching:** Automatically match and link extracted data to unique entities (e.g., persons or businesses).
 
 ## 🛠️ How It Works
 1. **Upload a File:** Use the file uploader in the sidebar to upload a PDF or image file.
