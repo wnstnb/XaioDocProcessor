@@ -6,9 +6,14 @@ import json
 import re
 from datetime import datetime
 from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+# Create a client
 
 # Initialize the OpenAI client with the updated API
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+client = OpenAI(api_key = os.getenv("OPENAI_API_KEY")
+)
 
 # Define the database schema for reference (for generating SQL queries)
 SCHEMA = r"""

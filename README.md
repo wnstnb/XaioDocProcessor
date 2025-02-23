@@ -18,6 +18,13 @@ This application allows you to upload PDFs or images of specific document types,
 3. **Display Results:** The extracted data is displayed in two columns: one for the output data and one for the image of the page.
 4. **Get Overall Stats:** Use natural language to interact with the database and get stats on performance and activity.
 
+## 💨 Quickstart
+Python 3.12
+
+CPU Installation:
+
+GPU Installation:
+
 ## 📋 Usage
 1. **Upload a File:**
     - Click on the "Upload a PDF or Image" button in the sidebar.

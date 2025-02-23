@@ -22,7 +22,8 @@ from google import genai
 from pydantic import BaseModel, Field
 from gemini_models import get_model, extract_structured_data
 from tenacity import retry, wait_random_exponential
-
+from dotenv import load_dotenv
+load_dotenv()
 
 
 logger = get_logger()
@@ -75,7 +76,7 @@ class PDFHandler:
         Yields:
             PIL.Image.Image: Image of a page in the PDF.
         """
-        for page_number, page in enumerate(convert_from_path(pdf_path, dpi=dpi), start=1):
+        for page_number, page in enumerate(convert_from_path(pdf_path, dpi=dpi, poppler_path=os.getenv('POPPLER_PATH')), start=1):
             yield page_number, page
     
     def convert_pages_to_img(self, output_dir="debug_images"):

@@ -30,10 +30,10 @@ DOCUMENT_FIELD_MAPPING = {
         "business": ["business_ein", "business_name"],
         "person": ["shareholder_name", "ssn_last_4"]
     },
-    "acord28": {
+    "acord_28": {
         "business": ["named_insured_name", "named_insured_address"]
     },
-    "acord25": {
+    "acord_25": {
         "business": ["named_insured_name", "named_insured_address"]
     },
     "drivers_license": {
@@ -236,7 +236,7 @@ def match_entities_for_page(page):
             associations.append(entity_id)
 
     # acord28, acord25 (Insurance Certificates)
-    if doc_type in ["acord28", "acord25"]:
+    if doc_type in ["acord_28", "acord_25"]:
         business_name = data.get("named_insured_name", "")
         address = data.get("named_insured_address", "")
         if business_name:
