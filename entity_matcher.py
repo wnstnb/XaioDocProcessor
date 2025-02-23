@@ -337,5 +337,5 @@ def match_entities_for_file(filename):
         match_entities_for_page(page)
 
 # On application startup, ensure our new tables exist
-create_entity_tables()
+# create_entity_tables()
 print("[DEBUG] Entity matcher module initialized.")

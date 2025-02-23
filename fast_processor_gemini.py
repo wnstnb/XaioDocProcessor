@@ -507,14 +507,14 @@ def process_file(fp):
         if page_label not in ['unknown', 'unknown_text_type', 'unknown_tax_form_type']:
             info, res = c.process_image()
             res['page_label'] = page_label
-            res['page_score'] = page_score
+            res['page_confidence'] = page_score
             res['page_num'] = row['page_number']
             extraction_results.append(res)
             info_results.append(info)
 
     df_pages['clf_type'] = clf_types
     df_pages['page_label'] = clf_results
-    df_pages['page_score'] = clf_confidence
+    df_pages['page_confidence'] = clf_confidence
     df_extracted = pd.DataFrame()
     df_info = pd.DataFrame()
     if len(extraction_results) > 0:
@@ -533,7 +533,6 @@ def process_file(fp):
         # df_extracted['id'] = None
         # df_extracted['created_at'] = None
         # store_df_to_db(df_extracted, 'extracted')
-
         return df_pages, df_extracted, df_info
     else:
         return df_pages, None, None

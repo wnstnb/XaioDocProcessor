@@ -10,20 +10,6 @@ import pytz
 import numpy as np
 from entity_matcher import match_entities_for_file
 
-
-# st.set_page_config(
-#     page_title="Form Sage UI",
-#     page_icon="🪄",
-#     layout="wide",
-# )
-
-# pg = st.navigation([
-#     st.Page("document_ui.py", title="Document UI", icon="🗃️"),
-#     st.Page("metrics_ui.py", title="Metrics UI", icon="📊"),
-#     # st.Page(page2, title="Second page", icon=":material/favorite:"),
-# ])
-
-
 def clear_cache():
     st.cache_data.clear()
     st.success("Cache cleared!")
@@ -71,8 +57,10 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS extracted2 (
             key TEXT,
-            label TEXT,
+            value TEXT,
             filename TEXT,
+            page_label TEXT,
+            page_confidence REAL,
             page_num INTEGER,
             created_at datetime default current_timestamp
         )
@@ -89,6 +77,26 @@ def init_db():
             created_at datetime default current_timestamp
         )
     ''')
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS entities (
+            entity_id INTEGER PRIMARY KEY,
+            entity_type TEXT,
+            entity_name TEXT,
+            additional_info TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS page_entity_crosswalk (
+            crosswalk_id INTEGER PRIMARY KEY,
+            page_id INTEGER,
+            entity_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (page_id) REFERENCES pages(id),
+            FOREIGN KEY (entity_id) REFERENCES entities(entity_id)
+        );
+    """)
     conn.commit()
     conn.close()
 
@@ -120,8 +128,10 @@ def process_pdf(upload_path):
 
     return df_pages, df_extracted, df_info
 
+# Initialize the database
+init_db()
+print("[DEBUG] DB initialized")
 
-# def main():
 
 # Ensure the 'uploaded_samples' directory exists
 upload_dir = "uploaded_samples"
