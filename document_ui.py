@@ -42,9 +42,6 @@ def get_connection():
     )
     return conn
 
-def clear_cache():
-    st.cache_data.clear()
-    st.success("Cache cleared!")
 
 def store_df_to_db(df, table_name):
     """

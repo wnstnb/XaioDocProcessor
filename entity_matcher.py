@@ -318,4 +318,4 @@ def match_entities_for_file(filename):
     for row in pages:
         page = dict(zip(col_names, row))
         print(f"[DEBUG] Processing page with id: {page.get('id')}, page number: {page.get('page_number')}")
-        match_entities_for_page(page)   
+        match_entities_for_page(page)

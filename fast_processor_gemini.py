@@ -508,7 +508,6 @@ def process_file(fp):
         # df_extracted['id'] = None
         # df_extracted['created_at'] = None
         # store_df_to_db(df_extracted, 'extracted')
-
         return df_pages, df_extracted, df_info
     else:
         return df_pages, None, None
