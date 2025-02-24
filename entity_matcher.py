@@ -1,9 +1,10 @@
-import sqlite3
+import os
+import psycopg2
+import psycopg2.extras
 import json
 from rapidfuzz import fuzz
 
 # Configuration mapping document types to fields
-# These keys correspond to those defined in gemini_models.py
 DOCUMENT_FIELD_MAPPING = {
     "1040_p1": {
         "person": ["primary_first_name", "primary_last_name", "primary_ssn_last_4"],
@@ -52,15 +53,12 @@ DOCUMENT_FIELD_MAPPING = {
         "business": ["business_name"]
     },
     "1120S_bal_sheet": {
-        # For balance sheets, identification may come from another page in the same file.
         "cross_page": True
     },
     "1065_bal_sheet": {
-        # For balance sheets, identification may come from another page in the same file.
         "cross_page": True
     },
     "1120_bal_sheet": {
-        # For balance sheets, identification may come from another page in the same file.
         "cross_page": True
     }
 }
@@ -71,33 +69,22 @@ def normalize_value(val):
     return ""
 
 def get_db_connection():
-    return sqlite3.connect('documents.db')
-
-def create_entity_tables():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS entities (
-            entity_id INTEGER PRIMARY KEY,
-            entity_type TEXT,
-            entity_name TEXT,
-            additional_info TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS page_entity_crosswalk (
-            crosswalk_id INTEGER PRIMARY KEY,
-            page_id INTEGER,
-            entity_id INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (page_id) REFERENCES pages(id),
-            FOREIGN KEY (entity_id) REFERENCES entities(entity_id)
-        );
-    """)
-    conn.commit()
-    conn.close()
-    print("[DEBUG] Entity tables ensured.")
+    """
+    Establish a connection to your Supabase PostgreSQL database.
+    """
+    user = os.environ.get("SUPABASE_USER")
+    password = os.environ.get("SUPABASE_PASSWORD")
+    host = os.environ.get("SUPABASE_HOST")
+    port = os.environ.get("SUPABASE_PORT", 5432)
+    dbname = os.environ.get("SUPABASE_DBNAME")
+    conn = psycopg2.connect(
+        user=user,
+        password=password,
+        host=host,
+        port=port,
+        dbname=dbname
+    )
+    return conn
 
 def fetch_extracted_data(page_preprocessed, page_num):
     print(f"[DEBUG] Fetching extracted data for file: {page_preprocessed}, page: {page_num}")
@@ -105,7 +92,7 @@ def fetch_extracted_data(page_preprocessed, page_num):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT key, value FROM extracted2 
-        WHERE filename = ? AND page_num = ?
+        WHERE filename = %s AND page_num = %s
     """, (page_preprocessed, page_num))
     rows = cursor.fetchall()
     conn.close()
@@ -120,7 +107,7 @@ def match_entity(entity_type, identifier_value, additional_info):
     norm_identifier = normalize_value(identifier_value)
     query = """
         SELECT entity_id, additional_info FROM entities 
-        WHERE entity_type = ? AND additional_info LIKE ?
+        WHERE entity_type = %s AND additional_info ILIKE %s
     """
     cursor.execute(query, (entity_type, f"%{norm_identifier}%"))
     result = cursor.fetchone()
@@ -132,10 +119,10 @@ def match_entity(entity_type, identifier_value, additional_info):
         info_json = json.dumps(additional_info)
         cursor.execute("""
             INSERT INTO entities (entity_type, entity_name, additional_info)
-            VALUES (?, ?, ?)
+            VALUES (%s, %s, %s) RETURNING entity_id
         """, (entity_type, entity_name, info_json))
         conn.commit()
-        entity_id = cursor.lastrowid
+        entity_id = cursor.fetchone()[0]
         print(f"[DEBUG] Created new entity (ID: {entity_id}) for {entity_type} with identifier: {identifier_value}")
     conn.close()
     return entity_id
@@ -146,7 +133,7 @@ def create_crosswalk(page_id, entity_id):
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO page_entity_crosswalk (page_id, entity_id)
-        VALUES (?, ?)
+        VALUES (%s, %s)
     """, (page_id, entity_id))
     conn.commit()
     conn.close()
@@ -172,7 +159,7 @@ def match_entities_for_page(page):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT preprocessed, page_number FROM pages WHERE filename = ?
+            SELECT preprocessed, page_number FROM pages WHERE filename = %s
         """, (page['filename'],))
         pages_in_file = cursor.fetchall()
         conn.close()
@@ -241,7 +228,6 @@ def match_entities_for_page(page):
         address = data.get("named_insured_address", "")
         if business_name:
             entity_info = {"entity_name": business_name, "address": address}
-            # We treat these as business entities.
             entity_id = match_entity("business", business_name, entity_info)
             associations.append(entity_id)
 
@@ -305,7 +291,6 @@ def match_entities_for_page(page):
 
     # For balance sheets, we assume merged data may now contain keys for a business.
     if doc_type in ["1120s_bal_sheet", "1065_bal_sheet", "1120_bal_sheet"]:
-        # Merged data already handled above; now try to match business info if available.
         ein = normalize_value(data.get("ein", ""))
         business_name = data.get("business_name", "")
         if ein or business_name:
@@ -319,23 +304,18 @@ def match_entities_for_page(page):
         print(f"[DEBUG] Creating crosswalk for page id {page.get('id')} and entity id {entity_id}")
         create_crosswalk(page['id'], entity_id)
 
-
 def match_entities_for_file(filename):
     print(f"[DEBUG] Matching entities for file: {filename}")
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Use rowid as id to have a unique page identifier
-    cursor.execute("SELECT rowid as id, * FROM pages WHERE filename = ?", (filename,))
+    # Assuming the pages table now uses "id" as the primary key
+    cursor.execute("SELECT id, * FROM pages WHERE filename = %s", (filename,))
     pages = cursor.fetchall()
-    col_names = [d[0] for d in cursor.description]
+    col_names = [desc[0] for desc in cursor.description]
     conn.close()
 
     print(f"[DEBUG] Found {len(pages)} pages for file: {filename}")
     for row in pages:
         page = dict(zip(col_names, row))
         print(f"[DEBUG] Processing page with id: {page.get('id')}, page number: {page.get('page_number')}")
-        match_entities_for_page(page)
-
-# On application startup, ensure our new tables exist
-create_entity_tables()
-print("[DEBUG] Entity matcher module initialized.")
+        match_entities_for_page(page)   

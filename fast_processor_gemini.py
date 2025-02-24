@@ -1,49 +1,35 @@
 import os
 from paddleocr import PaddleOCR
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from collections import defaultdict
 import pickle
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-from difflib import SequenceMatcher, get_close_matches
 from PIL import Image, ImageDraw
 import torch
-from transformers import AutoModel, AutoTokenizer, CLIPProcessor, CLIPModel, pipeline
+from transformers import CLIPProcessor, CLIPModel, pipeline
 import json
 import cv2
-from rapidfuzz import fuzz
 from pdf2image import convert_from_path
 from ppocr.utils.logging import get_logger
 import logging
 import time
 from google import genai
-from pydantic import BaseModel, Field
-from gemini_models import get_model, extract_structured_data
-from tenacity import retry, wait_random_exponential
-from dotenv import load_dotenv
-load_dotenv()
-
+from gemini_models import get_model
+from io import BytesIO  # NEW: for in-memory file operations
+from s3_utils import upload_fileobj_to_s3, download_fileobj_from_s3
+import mimetypes
 
 logger = get_logger()
 logger.setLevel(logging.ERROR)
 
 # Load models
-model_name='Snowflake/snowflake-arctic-embed-l-v2.0'
+model_name = 'Snowflake/snowflake-arctic-embed-l-v2.0'
 text_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 image_model = CLIPModel.from_pretrained("zer0int/CLIP-GmP-ViT-L-14")
 image_processor = CLIPProcessor.from_pretrained("zer0int/CLIP-GmP-ViT-L-14")
-template_db_path="template_keywords.pkl"
+template_db_path = "template_keywords.pkl"
 
-# Define labels (candidate classes for fallback)
-# fallback_labels = {
-#     "This is an official drivers license document":"drivers_license", 
-#     "This is a government-issued passport":"passport", 
-#     "This is a legal lease agreement document":"lease_document", 
-#     "This is a certificate verifying good standing for a business":"certificate_of_good_standing", 
-#     "This is an official business license document":"business_license"
-# }
 fallback_labels = {
     "This is a government-issued driver's license.": "drivers_license",
     "This is a government-issued passport.": "passport",
@@ -57,137 +43,119 @@ stop_words = set(stopwords.words("english"))
 
 with open(template_db_path, "rb") as f:
     template_db = pickle.load(f)
-    
+
 class PDFHandler:
     def __init__(self, pdf_path=None):
         self.self = self
         self.pdf_path = pdf_path
-        self.ocr = PaddleOCR(lang="en",  cls=False)
+        self.ocr = PaddleOCR(lang="en", cls=False)
         self.df_pages = self.convert_pages_to_img()
 
     def pdf_to_image_generator(self, pdf_path, dpi=300):
         """
         Generator that yields images for each page in the PDF.
-
-        Args:
-            pdf_path (str): Path to the PDF file.
-            dpi (int): Dots per inch for the rendered images.
-
-        Yields:
-            PIL.Image.Image: Image of a page in the PDF.
         """
-        for page_number, page in enumerate(convert_from_path(pdf_path, dpi=dpi, poppler_path=os.getenv('POPPLER_PATH')), start=1):
+        for page_number, page in enumerate(convert_from_path(pdf_path, dpi=dpi, poppler_path=os.environ.get('POPPLER_PATH')), start=1):
             yield page_number, page
     
     def convert_pages_to_img(self, output_dir="debug_images"):
         """
-        Classify each page of a PDF with the meta-classifier and detailed classifiers.
+        Process each page of a PDF (or single image file) to perform OCR and preprocessing.
+        Instead of saving images locally, we upload the preprocessed image to S3.
         """
         start_time = time.time()
-
         classification_results = []
 
+        # If the file is an image rather than a PDF:
         if self.pdf_path.lower().endswith(('.png', '.jpg', '.jpeg')):
             image = Image.open(self.pdf_path)
-            # Convert PIL image to NumPy array
             image_width, image_height = image.size
-
             image_np = np.array(image)
             ocr_results = self.ocr.ocr(image_np, cls=False)[0]
             lines = [line[1][0] for line in ocr_results]
             words = [word for phrase in lines for word in phrase.split(' ')]
             bboxes = [
-                [min(point[0] for point in box), min(point[1] for point in box), max(point[0] for point in box), max(point[1] for point in box)]
+                [min(point[0] for point in box), min(point[1] for point in box),
+                 max(point[0] for point in box), max(point[1] for point in box)]
                 for box in [line[0] for line in ocr_results]
             ]
             normalized_bboxes = [
-                [(x1 / image_width), (y1 / image_height), (x2 / image_width), (y2 / image_height)] for x1, y1, x2, y2 in bboxes
+                [x1 / image_width, y1 / image_height, x2 / image_width, y2 / image_height]
+                for x1, y1, x2, y2 in bboxes
             ]
             tokens = [word.lower() for word in words]
             words_for_clf = set([word for word in tokens if word not in stop_words])
 
             denoised, denoised_fp = self.preprocess_image(image_np)
-
             pp = Image.fromarray(denoised)
-
             fn = os.path.basename(self.pdf_path)
             
-            # Create a subdirectory for the PDF file
-            pdf_debug_dir = os.path.join(output_dir, os.path.splitext(fn)[0])
-            os.makedirs(pdf_debug_dir, exist_ok=True)
-
-            # Create a subdirectory for each page
-            debug_page_dir = os.path.join(pdf_debug_dir, f"page_1")
-            os.makedirs(debug_page_dir, exist_ok=True)
-
-            # Save the image with a clear naming convention
-            debug_img_path = os.path.join(debug_page_dir, f"preprocessed.png")
-            pp.save(debug_img_path)
-
+            # NEW: Instead of saving locally, upload image to S3.
+            buffer = BytesIO()
+            pp.save(buffer, format="PNG")
+            buffer.seek(0)
+            # Define S3 object key (adjust folder structure as needed)
+            s3_object_key = f"debug_images/{os.path.splitext(fn)[0]}/page_1/preprocessed.png"
+            upload_fileobj_to_s3(buffer, s3_object_key)
+            
             classification_results.append({
                 "filename": fn,
-                "preprocessed": debug_img_path,
+                "preprocessed": s3_object_key,  # now an S3 reference
                 "page_number": 1,
                 "image_width": image_width,
                 "image_height": image_height,
-                "lines":lines,
-                "words":words,
-                "bboxes":bboxes,
-                "normalized_bboxes":normalized_bboxes,
-                "tokens":tokens,
-                "words_for_clf":words_for_clf
+                "lines": lines,
+                "words": words,
+                "bboxes": bboxes,
+                "normalized_bboxes": normalized_bboxes,
+                "tokens": tokens,
+                "words_for_clf": words_for_clf
             })
 
         else:
+            # Process each page of a PDF
             image_paths = self.pdf_to_image_generator(self.pdf_path, dpi=300)
             for page_num, image in tqdm(image_paths, desc='converting pages...'):
-                # Convert PIL image to NumPy array
                 image_width, image_height = image.size
-
                 image_np = np.array(image)
                 ocr_results = self.ocr.ocr(image_np, cls=False)[0]
                 lines = [line[1][0] for line in ocr_results]
                 words = [word for phrase in lines for word in phrase.split(' ')]
                 bboxes = [
-                    [min(point[0] for point in box), min(point[1] for point in box), max(point[0] for point in box), max(point[1] for point in box)]
+                    [min(point[0] for point in box), min(point[1] for point in box),
+                     max(point[0] for point in box), max(point[1] for point in box)]
                     for box in [line[0] for line in ocr_results]
                 ]
                 normalized_bboxes = [
-                    [(x1 / image_width), (y1 / image_height), (x2 / image_width), (y2 / image_height)] for x1, y1, x2, y2 in bboxes
+                    [x1 / image_width, y1 / image_height, x2 / image_width, y2 / image_height]
+                    for x1, y1, x2, y2 in bboxes
                 ]
                 tokens = [word.lower() for word in words]
                 words_for_clf = set([word for word in tokens if word not in stop_words])
 
                 denoised, denoised_fp = self.preprocess_image(image_np)
-
                 pp = Image.fromarray(denoised)
-
                 fn = os.path.basename(self.pdf_path)
                 
-                # Create a subdirectory for the PDF file
-                pdf_debug_dir = os.path.join(output_dir, os.path.splitext(fn)[0])
-                os.makedirs(pdf_debug_dir, exist_ok=True)
-
-                # Create a subdirectory for each page
-                debug_page_dir = os.path.join(pdf_debug_dir, f"page_{page_num}")
-                os.makedirs(debug_page_dir, exist_ok=True)
-
-                # Save the image with a clear naming convention
-                debug_img_path = os.path.join(debug_page_dir, f"preprocessed.png")
-                pp.save(debug_img_path)
-
+                # NEW: Instead of creating local directories and saving the file, upload to S3.
+                buffer = BytesIO()
+                pp.save(buffer, format="PNG")
+                buffer.seek(0)
+                s3_object_key = f"debug_images/{os.path.splitext(fn)[0]}/page_{page_num}/preprocessed.png"
+                upload_fileobj_to_s3(buffer, s3_object_key)
+                
                 classification_results.append({
                     "filename": fn,
-                    "preprocessed": debug_img_path,
+                    "preprocessed": s3_object_key,  # S3 reference for the preprocessed image
                     "page_number": page_num,
                     "image_width": image_width,
                     "image_height": image_height,
-                    "lines":lines,
-                    "words":words,
-                    "bboxes":bboxes,
-                    "normalized_bboxes":normalized_bboxes,
-                    "tokens":tokens,
-                    "words_for_clf":words_for_clf
+                    "lines": lines,
+                    "words": words,
+                    "bboxes": bboxes,
+                    "normalized_bboxes": normalized_bboxes,
+                    "tokens": tokens,
+                    "words_for_clf": words_for_clf
                 })
         
         df_pages = pd.DataFrame(classification_results)
@@ -199,16 +167,16 @@ class PDFHandler:
     def preprocess_image(self, image, output_dir="debug_images"):
         """
         Preprocess image with the following steps:
-        1. Grayscale
+        1. Convert to Grayscale
         2. Denoising
         3. Otsu Binarization
         Intermediate results are saved for debugging.
         """
+        # (Local file saving for intermediate debugging can be retained if needed)
         os.makedirs(output_dir, exist_ok=True)
 
-        # Ensure the input image is a NumPy array
         if not isinstance(image, np.ndarray):
-            image = np.array(image)  # Convert from PIL Image to NumPy array if needed
+            image = np.array(image)
 
         # Step 1: Convert to Grayscale
         grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -216,7 +184,7 @@ class PDFHandler:
         cv2.imwrite(grayscale_fp, grayscale)
 
         # Step 2: Denoising
-        denoised = cv2.fastNlMeansDenoising(grayscale, h=10)  # Adjust 'h' as needed
+        denoised = cv2.fastNlMeansDenoising(grayscale, h=10)
         denoised_fp = os.path.join(output_dir, "2_denoised.png")
         cv2.imwrite(denoised_fp, denoised)
 
@@ -415,21 +383,31 @@ class ClassifyExtract:
     
     def process_image(self):
         model_use = get_model(self.page_label)
-        api_key = os.getenv("GOOGLE_GENAI_API_KEY")
+        api_key = os.environ.get("GOOGLE_GENAI_API_KEY")
         client = genai.Client(api_key=api_key)
         model_id = "gemini-2.0-flash"
         max_retries = 5
         backoff_factor = 2
 
+        if os.path.exists(self.image_path):
+            file_to_upload = self.image_path
+        else:
+            file_to_upload = download_fileobj_from_s3(self.image_path)
+        
+        # Determine the MIME type based on the file extension of self.image_path.
+        mime_type, _ = mimetypes.guess_type(self.image_path)
+        if not mime_type:
+            mime_type = "application/octet-stream"
+        
         for attempt in range(max_retries):
             print(f"Attempt {attempt + 1} of {max_retries}...")
             try:
-                # Upload the file to the File API
+                # Pass the mime_type argument to the upload call
                 file = client.files.upload(
-                    file=self.image_path, 
-                    config={'display_name': self.image_path.split('/')[-1].split('.')[0]}
+                    file=file_to_upload, 
+                    config={'display_name': os.path.basename(self.image_path).split('.')[0],
+                            'mime_type':mime_type}
                 )
-                # Generate a structured response using the Gemini API
                 prompt = (
                     "Extract the structured data from this document. "
                     "If SPII is requested, only return partial data. "
@@ -444,10 +422,7 @@ class ClassifyExtract:
                     }
                 )
                 print(response)
-                # print(response.candidates[0].finish_reason)
-
                 if response.parsed:
-                    # Valid response; process and return the data
                     info = {
                         'filename': self.image_path,
                         'model_version': response.model_version,
@@ -464,14 +439,12 @@ class ClassifyExtract:
                     extracted = extracted[['filename', 'key', 'value']]
                     return info, extracted
                 else:
-                    # No valid response—treat this as a failure, wait, and retry
                     wait_time = backoff_factor ** attempt
                     print(f"Response not valid. Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                     continue
 
             except genai.errors.ClientError as e:
-                # Handle known client error (e.g., resource exhaustion 429)
                 if e.code == 429:
                     wait_time = backoff_factor ** attempt
                     print(f"Resource exhausted (429). Retrying in {wait_time} seconds...")
@@ -481,6 +454,8 @@ class ClassifyExtract:
 
         print("Max retries reached. Could not process the image.")
         return None
+
+
 
 
 def process_file(fp):
@@ -507,14 +482,14 @@ def process_file(fp):
         if page_label not in ['unknown', 'unknown_text_type', 'unknown_tax_form_type']:
             info, res = c.process_image()
             res['page_label'] = page_label
-            res['page_score'] = page_score
+            res['page_confidence'] = page_score
             res['page_num'] = row['page_number']
             extraction_results.append(res)
             info_results.append(info)
 
     df_pages['clf_type'] = clf_types
     df_pages['page_label'] = clf_results
-    df_pages['page_score'] = clf_confidence
+    df_pages['page_confidence'] = clf_confidence
     df_extracted = pd.DataFrame()
     df_info = pd.DataFrame()
     if len(extraction_results) > 0:

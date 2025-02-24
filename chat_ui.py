@@ -1,19 +1,17 @@
 import os
 import streamlit as st
-import sqlite3
 import pandas as pd
 import json
 import re
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
+import psycopg2
+import psycopg2.extras
 
 load_dotenv()
-# Create a client
-
-# Initialize the OpenAI client with the updated API
-client = OpenAI(api_key = os.getenv("OPENAI_API_KEY")
-)
+# Initialize the OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Define the database schema for reference (for generating SQL queries)
 SCHEMA = r"""
@@ -34,7 +32,7 @@ Table: pages(
     processing_time REAL,   /* Time taken for processing */
     clf_type TEXT,          /* Type of classifier used */
     page_label TEXT,        /* Predicted label for the page */
-    page_score REAL,        /* Confidence score for the label */
+    page_confidence REAL,        /* Confidence score for the label */
     created_at DATETIME default current_timestamp /* Timestamp of creation */
 )
 Table: extracted2(
@@ -44,6 +42,8 @@ Table: extracted2(
     key TEXT,           /* Designated key extracted from the page (e.g., first_name, gross_revenue, etc.) */
     value TEXT,         /* Extracted value corresponding to the key */
     filename TEXT,      /* Foreign key to pages.preprocessed */
+    page_label TEXT,    /* Type of page -- correspondes to pages.page_label */
+    page_confidence REAL, /* Confidence score of page_label -- correspondes to pages.page_confidence */
     page_num INTEGER,   /* Page number in the document */
     created_at DATETIME default current_timestamp /* Timestamp of creation */
 )
@@ -64,38 +64,39 @@ Table: page_entity_crosswalk(
 )
 """
 
-# --- Conversation Persistence Functions ---
+# --- Supabase Connection using psycopg2 ---
+def get_connection():
+    user = os.environ.get("SUPABASE_USER")
+    password = os.environ.get("SUPABASE_PASSWORD")
+    host = os.environ.get("SUPABASE_HOST")
+    port = os.environ.get("SUPABASE_PORT", 5432)
+    dbname = os.environ.get("SUPABASE_DBNAME")
+    conn = psycopg2.connect(
+        user=user,
+        password=password,
+        host=host,
+        port=port,
+        dbname=dbname
+    )
+    return conn
 
-def init_conversations_table():
-    """Initialize a table to store conversations."""
-    conn = sqlite3.connect("documents.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS conversations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            conversation TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    conn.commit()
-    conn.close()
+# --- Conversation Persistence Functions ---
 
 def save_conversation(conversation, title="Conversation"):
     """Save a conversation (list of messages) to the database."""
-    conn = sqlite3.connect("documents.db")
+    conn = get_connection()
     cursor = conn.cursor()
     conversation_json = json.dumps(conversation)
-    # Use current timestamp as title if no title is provided
     if title == "Conversation":
         title = f"Conversation on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    cursor.execute("INSERT INTO conversations (title, conversation) VALUES (?, ?)", (title, conversation_json))
+    cursor.execute("INSERT INTO conversations (title, conversation) VALUES (%s, %s)", (title, conversation_json))
     conn.commit()
+    cursor.close()
     conn.close()
 
 def load_conversations():
     """Load all saved conversations from the database."""
-    conn = sqlite3.connect("documents.db")
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id, title, conversation, created_at FROM conversations ORDER BY created_at DESC")
     rows = cursor.fetchall()
@@ -109,9 +110,6 @@ def load_conversations():
             "created_at": row[3]
         })
     return conversations
-
-# Initialize conversation table on app start
-init_conversations_table()
 
 # --- Helper Functions for SQL Conversion ---
 
@@ -149,17 +147,17 @@ def convert_to_sql(nl_query: str, schema: str) -> str:
     """
 
     prompt = f"""You are an expert data scientist. You think step-by-step, considering all relationships and meanings in the data, and you thoughtfully craft your SQL queries with precision.
-    You are given a SQLite database with the following schema:
+    You are given a PostgreSQL database with the following schema:
     {schema}
 
-    You can only produce valid SQLite SQL queries, including SELECT queries as well as CRUD operations (e.g., CREATE, UPDATE, DELETE, DROP).
+    You can only produce valid PostgreSQL SQL queries, including SELECT queries as well as CRUD operations (e.g., CREATE, UPDATE, DELETE, DROP).
     If given a [complex query] tag, then take time to reconsider the schema as joining multiple tables is likely.
-    Use 'sqlite_master' to find table names or counts. For example:
+    Use information_schema for metadata queries. For example:
     {examples}
 
     Write a SQL query to answer the following question or perform the requested operation:
     \"\"\"{nl_query}\"\"\"
-    Make sure your answer is a single valid SQLite SQL query. Do not include any commentary.
+    Make sure your answer is a single valid PostgreSQL SQL query. Do not include any commentary.
     """
 
     response = client.chat.completions.create(
@@ -189,7 +187,7 @@ def convert_to_sql(nl_query: str, schema: str) -> str:
 
 def run_sql_query(query: str) -> pd.DataFrame:
     """Execute the given SQL query on the SQLite database and return the results as a DataFrame."""
-    conn = sqlite3.connect("documents.db")
+    conn = get_connection()
     try:
         if query.strip().lower().startswith(("select", "with")):
             df = pd.read_sql_query(query, conn)
