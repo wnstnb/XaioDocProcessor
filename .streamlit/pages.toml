@@ -14,7 +14,7 @@ name = "Document UI"
 icon = "🗃️"
 
 [[pages]]
-path = "pages/metrics_ui.py"
+path = "metrics_ui.py"
 name = "Metrics UI"
 icon = "📊"
 

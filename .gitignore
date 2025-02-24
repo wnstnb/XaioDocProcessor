@@ -4,9 +4,12 @@ __pycache__/
 *$py.class
 
 # Specific directories
-debug_images/
+debug_images*
 uploaded_*
 documents.db
+uploaded_samples
+synthetic_samples
+test_pages
 
 # C extensions
 *.so

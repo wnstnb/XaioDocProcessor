@@ -7,7 +7,7 @@ torchaudio
 pdf2image
 PyMuPDF
 Pillow
-# paddlepaddle-gpu
+paddlepaddle-gpu
 paddleocr
 pandas
 # numpy==1.23.5
@@ -36,6 +36,7 @@ google-genai>=1
 streamlit-markdown
 # nvidia-cudnn-cu12
 # distutils
-st-pages
-openai
-python-dotenv
+boto3
+supabase
+psycopg2
+SQLAlchemy
