@@ -206,5 +206,3 @@ if uploaded_file or selected_file:
             # Generate a presigned URL and display
             s3_url = get_s3_url(s3_object_key)
             st.image(s3_url, caption=f"Page {selected_page}")
-            st.text(s3_object_key)
-            st.text(s3_url)
