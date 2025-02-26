@@ -1,0 +1,205 @@
+Form 1120 (2023)
+Page 6
+1
+Cash
+2a Trade notes and accounts receivable
+b Less allowance for bad debts
+3
+Inventories..
+4
+U.S. government obligations
+5
+Tax-exempt securities (see instructions)
+Schedule L
+Balance Sheets per Books
+Assets
+(a)
+208987
+486272.36
+107567.14
+944832
+Beginning of tax year
+(b)
+End of tax year
+(c)
+(d)
+971,927
+283402
+795690.80
+348,951 (553632.67
+196012
+966278
+243071
+6
+Other current assets (attach statement)
+7
+Loans to shareholders
+118,841
+123812.11
+754470
+143,080
+8
+Mortgage and real estate loans.
+221646
+886,942
+9
+Other investments (attach statement)
+605,813
+10a Buildings and other depreciable assets
+376,799
+383,884
+b
+Less accumulated depreciation.
+821011
+681, 754)
+127,348
+11a
+Depletable assets.
+147,660
+966,267
+b
+Less accumulated depletion.
+47282)
+219705
+519804)
+12
+Land (net of any amortization)
+152339
+549,521
+13a Intangible assets (amortizable only)
+256949
+21375
+b Less accumulated amortization.
+568995
+48173 (
+61058 )
+69,266
+14
+15
+Total assets
+Other assets (attach statement).
+Liabilities and Shareholders' Equity
+Accounts payable..
+Mortgages, notes, bonds payable in less than 1 year
+538501.17
+64068
+16
+17
+18
+Other current liabilities (attach statement).
+361697
+777672
+621,801
+19
+Loans from shareholders.
+921929.61
+20
+Mortgages, notes, bonds payable in 1 year or more
+22
+22
+21 Other liabilities (attach statement)
+Capital stock: a Preferred stock
+797928
+684,410
+b Common stock
+597972
+151890
+23
+Additional paid-in capital..
+501741
+24
+Retained earnings-Appropriated (attach statement)
+626,128
+25
+Retained earnings-Unappropriated
+890,569
+26
+Adjustments to shareholders' equity (attach statement)
+161863
+27
+Less cost of treasury stock..
+28
+Total liabilities and shareholders' equity
+Note: The corporation may be required to file Schedule M-3. See instructions.
+1
+Net income (loss) per books.
+2
+Federal income tax per books.
+3
+Excess of capital losses over capital gains
+925422 )
+270,232
+Schedule M-1 Reconciliation of Income (Loss) per Books With Income per Return
+Income recorded on books this year
+not included on this return (itemize):
+Tax-exempt interest $
+262752.79 7
+75096
+436709
+4
+Income subject to tax not recorded on books
+this year (itemize):
+504050
+5
+Expenses recorded on books this year not
+8 Deductions on this retum not charged
+against book income this year (itemize):
+deducted on this return (itemize):
+a Depreciation . . $
+a
+Depreciation.
+b Charitable contributions $
+b Charitable contributions. $
+85,532
+393456
+119,490
+386992.44
+428594.34
+18,743
+438,535
+614668.83
+835,068
+134759
+660074
+253652
+438718)
+766086
+459539
+c Travel and entertainment. $
+706646.86
+9
+Add lines 7 and 8.
+766518
+317668.43
+6
+Add lines 1 through 5.
+1
+Balance at beginning of year
+2
+Net income (loss) per books.
+3
+Other increases (itemize):
+10
+Income (page 1, line 28)-line 6 less line 9
+167659
+Schedule M-2 Analysis of Unappropriated Retained Earnings per Books (Schedule L, Line 25)
+755417.59 5 Distributions: a Cash.
+952097.53
+b Stock
+c Property.
+616933
+377209
+824747
+6
+Other decreases (itemize):
+7
+Add lines 5 and 6 ..
+4
+Add lines 1, 2, and 3.
+384671
+8
+Balance at end of year (line 4 less line 7)
+342,928
+974625
+92973.96
+Form 1120 (2023)

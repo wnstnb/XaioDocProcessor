@@ -1,53 +1,51 @@
 import streamlit as st
-import sqlite3
+import os
+import psycopg2
 import pandas as pd
 
-
-def extraction_performance():
-    conn = sqlite3.connect('documents.db')
-    query = '''
-    SELECT key, 
-        count(*) value_count,
-           AVG(label_confidence) AS avg_label_confidence, 
-           SUM(CASE WHEN label_confidence IS NULL THEN 1 ELSE 0 END) AS no_label_count, 
-           AVG(value_confidence) AS avg_value_confidence, 
-           SUM(CASE WHEN value_confidence IS NULL THEN 1 ELSE 0 END) AS no_value_count
-    FROM extracted
-    WHERE not lower(key) like 'tag_%'
-    GROUP BY key
-    '''
-    df_results = pd.read_sql_query(query, conn)
-    conn.close()
-    st.dataframe(df_results)
+def get_connection():
+    user = os.environ.get("SUPABASE_USER")
+    password = os.environ.get("SUPABASE_PASSWORD")
+    host = os.environ.get("SUPABASE_HOST")
+    port = os.environ.get("SUPABASE_PORT", 5432)
+    dbname = os.environ.get("SUPABASE_DBNAME")
+    conn = psycopg2.connect(
+        user=user,
+        password=password,
+        host=host,
+        port=port,
+        dbname=dbname
+    )
+    return conn
 
 def page_performance():
-    conn = sqlite3.connect('documents.db')
+    conn = get_connection()
     query = '''
-    with most_recent_runs as (
-        select page_label, 
-            preprocessed,
-            page_number,
-            page_score, 
-            row_number() over (partition by preprocessed order by created_at desc) as rn
-        from pages
+    WITH most_recent_runs AS (
+        SELECT page_label, 
+               preprocessed,
+               page_number,
+               page_confidence, 
+               ROW_NUMBER() OVER (PARTITION BY preprocessed ORDER BY created_at DESC) AS rn
+        FROM pages
     )
-    select page_label, count(*) page_count, avg(page_score) agg_avg_conf
-    from most_recent_runs
-    where rn = 1
-    group by 1
+    SELECT page_label, COUNT(*) AS page_count, AVG(page_confidence) AS agg_avg_conf
+    FROM most_recent_runs
+    WHERE rn = 1
+    GROUP BY page_label
     '''
     df_results = pd.read_sql_query(query, conn)
     conn.close()
     st.dataframe(df_results)
 
 def clf_performance():
-    conn = sqlite3.connect('documents.db')
+    conn = get_connection()
     query = '''    
-    select clf_type, 
-        count(*) page_count, 
-        AVG(page_score) agg_avg_conf
-    from pages
-    group by 1
+    SELECT clf_type, 
+           COUNT(*) AS page_count, 
+           AVG(page_confidence) AS agg_avg_conf
+    FROM pages
+    GROUP BY clf_type
     '''
     df_results = pd.read_sql_query(query, conn)
     conn.close()
@@ -62,8 +60,3 @@ with st.expander("Page Statistics"):
 with st.expander("Classifier Performance"):
     st.info('Performance by Classifier')
     clf_performance()
-
-with st.expander("Field Statistics"):
-    st.info('Performance by field')
-    extraction_performance()
-
