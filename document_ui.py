@@ -11,6 +11,7 @@ from entity_matcher import match_entities_for_file
 import psycopg2
 import psycopg2.extras
 import boto3  # NEW: Import boto3 for generating S3 URLs
+from s3_utils import upload_fileobj_to_s3
 
 # --- Helper to generate presigned S3 URL ---
 def get_s3_url(object_key, bucket_name="form-sage-storage", expiration=3600):
@@ -106,7 +107,8 @@ conn.close()
 with st.sidebar:
     clear_button = st.button("♻️ Clear Cache", type="primary")
     if clear_button:
-        clear_cache()
+        st.cache_data.clear()
+        st.success("Cache cleared!")
     
     uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
     selected_file = st.selectbox("Select a File", options=all_files['filename'].values if not all_files.empty else [],index=None)
@@ -117,11 +119,19 @@ if not uploaded_file and not selected_file:
 # --- Processing New Uploads ---
 if uploaded_file:
     dt_start = datetime.now()
-    # Save the uploaded file locally
+    # Save the uploaded file locally (temporary storage)
     upload_path = os.path.join(upload_dir, uploaded_file.name)
     with open(upload_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
+    
+    # Upload the raw file to S3 using upload_fileobj_to_s3.
+    # Open the file in binary mode and pass it to the helper.
+    with open(upload_path, "rb") as file_obj:
+        raw_s3_key = upload_fileobj_to_s3(file_obj, object_key=f"raw_uploads/{os.path.basename(upload_path)}")
+    st.write(f"Raw file uploaded to S3 as: {raw_s3_key}")
+    
     df_pages, df_extracted, df_info = process_pdf(upload_path)
+
 
 # --- Loading Existing File Data ---
 if selected_file:
