@@ -128,7 +128,7 @@ if uploaded_file:
     # Open the file in binary mode and pass it to the helper.
     with open(upload_path, "rb") as file_obj:
         raw_s3_key = upload_fileobj_to_s3(file_obj, object_key=f"raw_uploads/{os.path.basename(upload_path)}")
-    st.write(f"Raw file uploaded to S3 as: {raw_s3_key}")
+    # st.write(f"Raw file uploaded to S3 as: {raw_s3_key}")
     
     df_pages, df_extracted, df_info = process_pdf(upload_path)
 

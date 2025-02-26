@@ -15,6 +15,7 @@ from ppocr.utils.logging import get_logger
 import logging
 import time
 from google import genai
+from google.cloud import vision
 from gemini_models import get_model
 from io import BytesIO  # NEW: for in-memory file operations
 from s3_utils import upload_fileobj_to_s3, download_fileobj_from_s3
@@ -23,11 +24,12 @@ import mimetypes
 logger = get_logger()
 logger.setLevel(logging.ERROR)
 
-# Load models
-model_name = 'Snowflake/snowflake-arctic-embed-l-v2.0'
+# Load models for fallback classification
 text_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 image_model = CLIPModel.from_pretrained("zer0int/CLIP-GmP-ViT-L-14")
 image_processor = CLIPProcessor.from_pretrained("zer0int/CLIP-GmP-ViT-L-14")
+
+# For classification using template matching
 template_db_path = "template_keywords.pkl"
 
 fallback_labels = {
@@ -44,24 +46,22 @@ stop_words = set(stopwords.words("english"))
 with open(template_db_path, "rb") as f:
     template_db = pickle.load(f)
 
+# Define stop words (using the NLTK corpus)
+stop_words = set(stopwords.words("english"))
+
 class PDFHandler:
     def __init__(self, pdf_path=None):
-        self.self = self
         self.pdf_path = pdf_path
-        self.ocr = PaddleOCR(lang="en", cls=False)
+        # Removed PaddleOCR initialization since we now use Cloud Vision
         self.df_pages = self.convert_pages_to_img()
 
-    def pdf_to_image_generator(self, pdf_path, dpi=300):
-        """
-        Generator that yields images for each page in the PDF.
-        """
-        for page_number, page in enumerate(convert_from_path(pdf_path, dpi=dpi, poppler_path=os.environ.get('POPPLER_PATH')), start=1):
-            yield page_number, page
-    
     def convert_pages_to_img(self, output_dir="debug_images"):
         """
-        Process each page of a PDF (or single image file) to perform OCR and preprocessing.
-        Instead of saving images locally, we upload the preprocessed image to S3.
+        Process each page of a PDF (or a single image file) using the Cloud Vision API for OCR.
+        Instead of saving images locally, the preprocessed image is uploaded to S3.
+        Returns a DataFrame with the following columns:
+          - filename, preprocessed, page_number, image_width, image_height, lines, words,
+            bboxes, normalized_bboxes, tokens, words_for_clf, processing_time
         """
         start_time = time.time()
         classification_results = []
@@ -70,37 +70,57 @@ class PDFHandler:
         if self.pdf_path.lower().endswith(('.png', '.jpg', '.jpeg')):
             image = Image.open(self.pdf_path)
             image_width, image_height = image.size
-            image_np = np.array(image)
-            ocr_results = self.ocr.ocr(image_np, cls=False)[0]
-            lines = [line[1][0] for line in ocr_results]
-            words = [word for phrase in lines for word in phrase.split(' ')]
-            bboxes = [
-                [min(point[0] for point in box), min(point[1] for point in box),
-                 max(point[0] for point in box), max(point[1] for point in box)]
-                for box in [line[0] for line in ocr_results]
-            ]
+
+            # Convert image to bytes for Cloud Vision
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            buffer.seek(0)
+            image_bytes = buffer.getvalue()
+
+            # Perform document text detection using Cloud Vision API
+            client = vision.ImageAnnotatorClient()
+            vision_image = vision.Image(content=image_bytes)
+            response = client.document_text_detection(image=vision_image)
+            if response.error.message:
+                raise Exception(response.error.message)
+            annotation = response.full_text_annotation
+            text_annotations = response.text_annotations
+            words = [s.description for s in text_annotations[1:]] if len(text_annotations) > 1 else []
+
+            # Extract bounding boxes from text annotations (skip the first element)
+            bboxes = []
+            for s in text_annotations[1:]:
+                vertices = s.bounding_poly.vertices
+                x1 = min(vertex.x for vertex in vertices)
+                y1 = min(vertex.y for vertex in vertices)
+                x2 = max(vertex.x for vertex in vertices)
+                y2 = max(vertex.y for vertex in vertices)
+                bboxes.append([x1, y1, x2, y2])
             normalized_bboxes = [
-                [x1 / image_width, y1 / image_height, x2 / image_width, y2 / image_height]
-                for x1, y1, x2, y2 in bboxes
+                [bbox[0] / image_width, bbox[1] / image_height, bbox[2] / image_width, bbox[3] / image_height]
+                for bbox in bboxes
             ]
+
+            # Get lines by splitting the full text annotation (if available)
+            lines = annotation.text.splitlines() if annotation.text else []
+
             tokens = [word.lower() for word in words]
             words_for_clf = set([word for word in tokens if word not in stop_words])
 
-            denoised, denoised_fp = self.preprocess_image(image_np)
+            # Preprocess the image (denoising) and upload to S3
+            image_np = np.array(image)
+            denoised, _ = self.preprocess_image(image_np)
             pp = Image.fromarray(denoised)
             fn = os.path.basename(self.pdf_path)
-            
-            # NEW: Instead of saving locally, upload image to S3.
-            buffer = BytesIO()
-            pp.save(buffer, format="PNG")
-            buffer.seek(0)
-            # Define S3 object key (adjust folder structure as needed)
+            buffer_pp = BytesIO()
+            pp.save(buffer_pp, format="PNG")
+            buffer_pp.seek(0)
             s3_object_key = f"debug_images/{os.path.splitext(fn)[0]}/page_1/preprocessed.png"
-            upload_fileobj_to_s3(buffer, s3_object_key)
-            
+            upload_fileobj_to_s3(buffer_pp, s3_object_key)
+
             classification_results.append({
                 "filename": fn,
-                "preprocessed": s3_object_key,  # now an S3 reference
+                "preprocessed": s3_object_key,  # S3 reference
                 "page_number": 1,
                 "image_width": image_width,
                 "image_height": image_height,
@@ -113,37 +133,56 @@ class PDFHandler:
             })
 
         else:
-            # Process each page of a PDF
-            image_paths = self.pdf_to_image_generator(self.pdf_path, dpi=300)
-            for page_num, image in tqdm(image_paths, desc='converting pages...'):
+            # Directly convert PDF pages to images
+            pages = convert_from_path(self.pdf_path, dpi=300, poppler_path=os.environ.get('POPPLER_PATH'))
+            for page_num, image in enumerate(tqdm(pages, desc='converting pages...'), start=1):
                 image_width, image_height = image.size
-                image_np = np.array(image)
-                ocr_results = self.ocr.ocr(image_np, cls=False)[0]
-                lines = [line[1][0] for line in ocr_results]
-                words = [word for phrase in lines for word in phrase.split(' ')]
-                bboxes = [
-                    [min(point[0] for point in box), min(point[1] for point in box),
-                     max(point[0] for point in box), max(point[1] for point in box)]
-                    for box in [line[0] for line in ocr_results]
-                ]
+
+                # Convert image to bytes for Cloud Vision
+                buffer = BytesIO()
+                image.save(buffer, format="PNG")
+                buffer.seek(0)
+                image_bytes = buffer.getvalue()
+
+                # Perform OCR using Cloud Vision API
+                client = vision.ImageAnnotatorClient()
+                vision_image = vision.Image(content=image_bytes)
+                response = client.document_text_detection(image=vision_image)
+                if response.error.message:
+                    raise Exception(response.error.message)
+                annotation = response.full_text_annotation
+                text_annotations = response.text_annotations
+                words = [s.description for s in text_annotations[1:]] if len(text_annotations) > 1 else []
+
+                # Get bounding boxes from text annotations (skipping the first element)
+                bboxes = []
+                for s in text_annotations[1:]:
+                    vertices = s.bounding_poly.vertices
+                    x1 = min(vertex.x for vertex in vertices)
+                    y1 = min(vertex.y for vertex in vertices)
+                    x2 = max(vertex.x for vertex in vertices)
+                    y2 = max(vertex.y for vertex in vertices)
+                    bboxes.append([x1, y1, x2, y2])
                 normalized_bboxes = [
-                    [x1 / image_width, y1 / image_height, x2 / image_width, y2 / image_height]
-                    for x1, y1, x2, y2 in bboxes
+                    [bbox[0] / image_width, bbox[1] / image_height, bbox[2] / image_width, bbox[3] / image_height]
+                    for bbox in bboxes
                 ]
+
+                lines = annotation.text.splitlines() if annotation.text else []
                 tokens = [word.lower() for word in words]
                 words_for_clf = set([word for word in tokens if word not in stop_words])
 
-                denoised, denoised_fp = self.preprocess_image(image_np)
+                # Preprocess the image and upload to S3
+                image_np = np.array(image)
+                denoised, _ = self.preprocess_image(image_np)
                 pp = Image.fromarray(denoised)
                 fn = os.path.basename(self.pdf_path)
-                
-                # NEW: Instead of creating local directories and saving the file, upload to S3.
-                buffer = BytesIO()
-                pp.save(buffer, format="PNG")
-                buffer.seek(0)
+                buffer_pp = BytesIO()
+                pp.save(buffer_pp, format="PNG")
+                buffer_pp.seek(0)
                 s3_object_key = f"debug_images/{os.path.splitext(fn)[0]}/page_{page_num}/preprocessed.png"
-                upload_fileobj_to_s3(buffer, s3_object_key)
-                
+                upload_fileobj_to_s3(buffer_pp, s3_object_key)
+
                 classification_results.append({
                     "filename": fn,
                     "preprocessed": s3_object_key,  # S3 reference for the preprocessed image
@@ -157,7 +196,7 @@ class PDFHandler:
                     "tokens": tokens,
                     "words_for_clf": words_for_clf
                 })
-        
+
         df_pages = pd.DataFrame(classification_results)
         end_time = time.time()
         processing_time = end_time - start_time
@@ -166,15 +205,12 @@ class PDFHandler:
 
     def preprocess_image(self, image, output_dir="debug_images"):
         """
-        Preprocess image with the following steps:
+        Preprocess the image:
         1. Convert to Grayscale
-        2. Denoising
-        3. Otsu Binarization
-        Intermediate results are saved for debugging.
+        2. Denoising via fastNlMeansDenoising
+        Intermediate images are saved locally for debugging.
         """
-        # (Local file saving for intermediate debugging can be retained if needed)
         os.makedirs(output_dir, exist_ok=True)
-
         if not isinstance(image, np.ndarray):
             image = np.array(image)
 
@@ -190,11 +226,10 @@ class PDFHandler:
 
         return denoised, denoised_fp
 
+
 class ClassifyExtract:
     def __init__(self, row):
         self.fallback_labels = fallback_labels
-        # self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        # self.model = AutoModel.from_pretrained(model_name, add_pooling_layer=False).eval().to(self.get_device())
         self.filename = row['filename']
         self.image_path = row['preprocessed']
         self.image_width, self.image_height = row['image_width'], row['image_height']
@@ -279,8 +314,16 @@ class ClassifyExtract:
         """
         Classify document using image-based zero-shot classification.
         """
-        # labels = fallback_labels.keys()
-        image = Image.open(image_path)
+        import os
+        from s3_utils import download_fileobj_from_s3
+
+        # Check if the file exists locally; if not, download it from S3.
+        if not os.path.exists(image_path):
+            file_obj = download_fileobj_from_s3(image_path)
+            image = Image.open(file_obj)
+        else:
+            image = Image.open(image_path)
+        
         inputs = image_processor(text=labels, images=image, return_tensors="pt", padding=True)
         outputs = image_model(**inputs)
         probs = outputs.logits_per_image.softmax(dim=1)  # Image-text similarity scores
