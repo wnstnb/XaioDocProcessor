@@ -5,13 +5,11 @@ import json
 import re
 from datetime import datetime
 from openai import OpenAI
-from dotenv import load_dotenv
 import psycopg2
 import psycopg2.extras
 
-load_dotenv()
 # Initialize the OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 # Define the database schema for reference (for generating SQL queries)
 SCHEMA = r"""

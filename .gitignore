@@ -10,6 +10,7 @@ documents.db
 uploaded_samples
 synthetic_samples
 test_pages
+freeze.txt
 
 # C extensions
 *.so
