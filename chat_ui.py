@@ -121,7 +121,7 @@ def cleanup_sql_query(raw_query: str) -> str:
 
 def convert_to_sql(nl_query: str, schema: str) -> str:
     examples = """
-    Examples of valid SQLite queries:
+    Examples of valid queries:
 
     1) "How many tables are in the DB?"
     SELECT COUNT(*) AS table_count FROM sqlite_master WHERE type='table';
@@ -208,6 +208,12 @@ st.info('This is a chat interface with the database, focused on answering questi
 st.sidebar.header("Saved Conversations")
 saved_conversations = load_conversations()
 conversation_titles = [conv["title"] for conv in saved_conversations]
+
+with st.sidebar:
+    clear_button = st.button("♻️ Clear Cache", type="primary")
+    if clear_button:
+        st.cache_data.clear()
+        st.success("Cache cleared!")
 
 selected_conv_title = st.sidebar.selectbox("Select a saved conversation", ["-- New Conversation --"] + conversation_titles)
 if selected_conv_title != "-- New Conversation --":

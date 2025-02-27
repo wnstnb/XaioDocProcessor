@@ -1,5 +1,4 @@
 import os
-from paddleocr import PaddleOCR
 from nltk.corpus import stopwords
 import pickle
 from tqdm import tqdm
@@ -11,8 +10,6 @@ from transformers import CLIPProcessor, CLIPModel, pipeline
 import json
 import cv2
 from pdf2image import convert_from_path
-from ppocr.utils.logging import get_logger
-import logging
 import time
 from google import genai
 from google.cloud import vision
@@ -20,9 +17,6 @@ from gemini_models import get_model
 from io import BytesIO  # NEW: for in-memory file operations
 from s3_utils import upload_fileobj_to_s3, download_fileobj_from_s3
 import mimetypes
-
-logger = get_logger()
-logger.setLevel(logging.ERROR)
 
 # Load models for fallback classification
 text_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
