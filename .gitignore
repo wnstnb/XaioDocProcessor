@@ -11,6 +11,7 @@ uploaded_samples
 synthetic_samples
 test_pages
 freeze.txt
+node_modules/
 
 # C extensions
 *.so
