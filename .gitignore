@@ -11,7 +11,8 @@ uploaded_samples
 synthetic_samples
 test_pages
 freeze.txt
-node_modules/
+*node_modules/
+bfg-1.15.0.jar
 
 # C extensions
 *.so

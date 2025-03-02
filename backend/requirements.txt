@@ -43,3 +43,7 @@ SQLAlchemy
 st-pages
 google-cloud-vision
 openai
+fastapi
+uvicorn
+python-dotenv
+python-multipart

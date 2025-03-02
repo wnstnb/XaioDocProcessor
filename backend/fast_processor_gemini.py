@@ -540,8 +540,8 @@ def process_file(fp):
         
         # Fix non-serializable columns
         for col in df_extracted.columns:
-            if df_extracted[col].apply(lambda x: isinstance(x, (list, dict))).any():
-                df_extracted[col] = df_extracted[col].apply(lambda x: str(x) if isinstance(x, (list, dict)) else x)
+            if df_extracted[col].apply(lambda x: isinstance(x, (list, dict, set))).any():
+                df_extracted[col] = df_extracted[col].apply(lambda x: str(x) if isinstance(x, (list, dict, set)) else x)
         # df_extracted['id'] = None
         # df_extracted['created_at'] = None
         # store_df_to_db(df_extracted, 'extracted')
