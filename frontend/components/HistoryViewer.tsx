@@ -2,6 +2,9 @@
 
 import { useState, useMemo } from "react"
 import { CompactDataTable } from "@/components/CompactDataTable"
+import { Button } from "@/components/ui/button" // adjust the import path as needed
+import { exportToCsv } from "@/components/exportCsv" // adjust the import path as needed
+
 
 interface HistoryViewerProps {
   historyData: {
@@ -43,10 +46,6 @@ export function HistoryViewer({ historyData }: HistoryViewerProps) {
 
   return (
     <div className="mt-4 space-y-4">
-      <p className="font-medium text-sm">
-        Showing data for: <strong>{historyData.filename}</strong>
-      </p>
-
       {/* Page selector for history */}
       {historyPageNumbers.length > 0 && (
         <div>
@@ -59,11 +58,18 @@ export function HistoryViewer({ historyData }: HistoryViewerProps) {
             onChange={(e) => setHistoryCurrentPage(Number(e.target.value))}
             className="border rounded p-1"
           >
-            {historyPageNumbers.map((pageNum) => (
-              <option key={pageNum} value={pageNum}>
-                Page {pageNum}
-              </option>
-            ))}
+            {historyPageNumbers.map((pageNum) => {
+                  // Find the first row in extracted with this pageNum to get its label
+                  const matchingRow = historyData.extracted.find(
+                    (row) => row.page_num === pageNum
+                  );
+                  const label = matchingRow?.page_label ?? "Unknown";
+                  return (
+                    <option key={pageNum} value={pageNum}>
+                      {`Page ${pageNum} - ${label}`}
+                    </option>
+                  );
+                })}
           </select>
         </div>
       )}
@@ -84,10 +90,29 @@ export function HistoryViewer({ historyData }: HistoryViewerProps) {
 
         {/* Right: Table for extracted fields */}
         <div className="md:w-1/2">
+        <div className="flex items-center justify-between mb-2">
+            <h2 className="mr-2 font-medium">
+              Extracted Fields - Page {historyCurrentPage}
+            </h2>
+              {/* <div className="sticky top-0 bg-gray-50 p-2 rounded shadow"> */}
+                      <Button
+                        onClick={() =>
+                          exportToCsv(
+                            `${historyData.filename}-page-${historyCurrentPage}.csv`,
+                            historyCurrentExtracted
+                          )
+                        }
+                        className="mb-2"
+                      >
+                        Export CSV
+                      </Button>
+                </div>
+              <div className="sticky top-16 overflow-y-auto border rounded">
           <CompactDataTable
             data={historyCurrentExtracted}
-            title={`Extracted Fields - Page ${historyCurrentPage}`}
+            // title={`Extracted Fields - Page ${historyCurrentPage}`}
           />
+          </div>
         </div>
       </div>
 

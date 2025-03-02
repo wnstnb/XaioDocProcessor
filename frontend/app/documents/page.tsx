@@ -3,6 +3,8 @@ import { useState, useMemo } from "react"
 import { FileUploader } from "@/components/file-uploader"
 import { CompactDataTable } from "@/components/CompactDataTable"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { exportToCsv } from "@/components/exportCsv" // adjust the import path as needed
+import { Button } from "@/components/ui/button" // adjust the import path as needed
 
 
 export default function DocumentsPage() {
@@ -75,11 +77,18 @@ export default function DocumentsPage() {
                 onChange={(e) => setCurrentPage(Number(e.target.value))}
                 className="border rounded p-1"
               >
-                {pageNumbers.map((pageNum) => (
-                  <option key={pageNum} value={pageNum}>
-                    Page {pageNum}
-                  </option>
-                ))}
+                {pageNumbers.map((pageNum) => {
+                  // Find the first row in extracted with this pageNum to get its label
+                  const matchingRow = processedData.extracted.find(
+                    (row) => row.page_num === pageNum
+                  );
+                  const label = matchingRow?.page_label ?? "Unknown";
+                  return (
+                    <option key={pageNum} value={pageNum}>
+                      {`Page ${pageNum} - ${label}`}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           )}
@@ -100,13 +109,33 @@ export default function DocumentsPage() {
 
             {/* Right: extracted fields table */}
             <div className="md:w-1/2">
+            <div className="flex items-center justify-between mb-2">
+            <h2 className="mr-2 font-medium">
+              Extracted Fields - Page {currentPage}
+            </h2>
+              {/* <div className="sticky top-0 bg-gray-50 p-2 rounded shadow"> */}
+                      <Button
+                        onClick={() =>
+                          exportToCsv(
+                            `${processedData.filename}-page-${currentPage}.csv`,
+                            currentExtracted
+                          )
+                        }
+                        className="mb-2"
+                      >
+                        Export CSV
+                      </Button>
+                </div>
+              <div className="sticky top-16 overflow-y-auto border rounded">
               <CompactDataTable
                 data={currentExtracted}
-                title={`Extracted Fields - Page ${currentPage}`}
+                // title={`Extracted Fields - Page ${currentPage}`}
               />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        // </div>
       )}
     </div>
   );
