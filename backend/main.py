@@ -5,6 +5,8 @@ import shutil
 import os
 from fast_processor_gemini import process_file  # Import your processing function
 import boto3
+import psycopg2
+import pandas as pd
 
 app = FastAPI()
 
@@ -34,6 +36,93 @@ def get_s3_url(object_key, bucket_name="form-sage-storage", expiration=3600):
         Params={'Bucket': bucket_name, 'Key': object_key},
         ExpiresIn=expiration
     )
+
+# --- Supabase Connection using psycopg2 ---
+def get_connection():
+    user = os.environ.get("SUPABASE_USER")
+    password = os.environ.get("SUPABASE_PASSWORD")
+    host = os.environ.get("SUPABASE_HOST")
+    port = os.environ.get("SUPABASE_PORT", 5432)
+    dbname = os.environ.get("SUPABASE_DBNAME")
+    conn = psycopg2.connect(
+        user=user,
+        password=password,
+        host=host,
+        port=port,
+        dbname=dbname
+    )
+    return conn
+
+@app.get("/list-files")
+def list_files():
+    conn = get_connection()
+    query = """
+    WITH p1 AS (
+        SELECT DISTINCT created_at, filename 
+        FROM pages
+        ORDER BY created_at DESC
+    )
+    SELECT filename FROM p1
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+
+    # Return just the list of filenames
+    return df["filename"].tolist()
+
+@app.get("/get-file")
+def get_file(filename: str):
+    conn = get_connection()
+    
+    query_pages = f"""
+    WITH p1 AS (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY preprocessed ORDER BY created_at DESC) rn
+        FROM pages
+        WHERE filename = '{filename}'
+    )
+    SELECT * FROM p1 WHERE rn = 1
+    """
+    df_pages = pd.read_sql_query(query_pages, conn)
+    
+    query_extracted = f"""
+    WITH e3 AS (
+        SELECT p.filename AS base_file, e2.*,
+               ROW_NUMBER() OVER (PARTITION BY e2.filename, e2.key ORDER BY created_at DESC) rn
+        FROM extracted2 e2
+        JOIN (SELECT filename, preprocessed FROM pages) p ON e2.filename = p.preprocessed
+        WHERE p.filename = '{filename}'
+    )
+    SELECT * FROM e3 WHERE rn = 1
+    """
+    df_extracted = pd.read_sql_query(query_extracted, conn)
+    
+    query_info = f"""
+    WITH i1 AS (
+        SELECT p.filename AS base_file, i.*,
+               ROW_NUMBER() OVER (PARTITION BY i.filename ORDER BY created_at DESC) rn
+        FROM call_info i
+        JOIN (SELECT filename, preprocessed FROM pages) p ON i.filename = p.preprocessed
+        WHERE p.filename = '{filename}'
+    )
+    SELECT * FROM i1 WHERE rn = 1
+    """
+    df_info = pd.read_sql_query(query_info, conn)
+    conn.close()
+
+    # Convert each to records
+    pages = df_pages.to_dict(orient="records")
+    for page in pages:
+        page["s3_url"] = get_s3_url(page["preprocessed"])
+    extracted = df_extracted.to_dict(orient="records")
+    info = df_info.to_dict(orient="records")
+
+    return {
+        "filename": filename,
+        "pages": pages,
+        "extracted": extracted,
+        "info": info
+    }
 
 
 @app.post("/upload")
