@@ -13,6 +13,8 @@ test_pages
 freeze.txt
 *node_modules/
 bfg-1.15.0.jar
+.vscode
+*.zip
 
 # C extensions
 *.so

@@ -7,8 +7,6 @@ torchaudio
 pdf2image
 PyMuPDF
 Pillow
-paddlepaddle-gpu
-paddleocr
 pandas
 # numpy==1.23.5
 numpy
