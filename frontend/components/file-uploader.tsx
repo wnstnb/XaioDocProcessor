@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { Upload, File, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 interface FileUploaderProps {
   onUploadSuccess: (data: any) => void
@@ -69,6 +70,16 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
   }
 
   return (
+    <Tabs defaultValue="upload" className="w-full">
+    {/* The tab triggers */}
+    <TabsList className="grid w-full max-w-md grid-cols-2">
+      <TabsTrigger value="upload">Upload</TabsTrigger>
+      <TabsTrigger value="history">Processing History</TabsTrigger>
+    </TabsList>
+
+    {/* --- Tab Content 1: Upload --- */}
+    <TabsContent value="upload" className="mt-6">
+
     <div className="space-y-4">
       <div
         className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 p-4 text-center hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-900/50"
@@ -132,5 +143,16 @@ export function FileUploader({ onUploadSuccess }: FileUploaderProps) {
         </div>
       )}
     </div>
+    </TabsContent>
+    {/* --- Tab Content 2: Processing History --- */}
+    <TabsContent value="history" className="mt-6">
+            {/* You can fetch a list of previously processed files here and display them. */}
+            <p className="text-sm text-muted-foreground">
+              Here you can list or search previously processed documents from the database.
+            </p>
+            {/* For example, you could create a "HistoryList" component that calls
+                an API endpoint like /list-files or /get-file to show old data. */}
+          </TabsContent>
+        </Tabs>
   )
 }
