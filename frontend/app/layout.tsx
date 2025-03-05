@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site-footer"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "FormSage - Document Data Extraction",
+  title: "Xaio",
   description: "Extract structured data from PDFs and images using AI",
     generator: 'v0.dev'
 }

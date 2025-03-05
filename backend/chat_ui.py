@@ -60,6 +60,12 @@ Table: page_entity_crosswalk(
     entity_id INTEGER,        /* Foreign key to entities (entities.entity_id) */
     created_at DATETIME default current_timestamp /* Timestamp of creation */
 )
+Table: conversations (
+    id SERIAL PRIMARY KEY, 
+    title TEXT,
+    conversation TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 # --- Supabase Connection using psycopg2 ---
@@ -79,18 +85,32 @@ def get_connection():
     return conn
 
 # --- Conversation Persistence Functions ---
-
 def save_conversation(conversation, title="Conversation"):
     """Save a conversation (list of messages) to the database."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    conversation_json = json.dumps(conversation)
-    if title == "Conversation":
-        title = f"Conversation on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    cursor.execute("INSERT INTO conversations (title, conversation) VALUES (%s, %s)", (title, conversation_json))
-    conn.commit()
-    cursor.close()
-    conn.close()
+    print(conversation)
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Convert the conversation to a JSON-serializable format
+        # This ensures we're working with basic Python types that can be JSON serialized
+        conversation_json = json.dumps(conversation)
+        
+        if title == "Conversation":
+            title = f"Conversation on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        cursor.execute(
+            "INSERT INTO conversations (title, conversation) VALUES (%s, %s)",
+            (title, conversation_json)
+        )
+        conn.commit()
+    except Exception as e:
+        print(f"Error saving conversation: {e}")
+        raise  # Re-raise the exception to propagate it to the caller
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
 
 def load_conversations():
     """Load all saved conversations from the database."""
@@ -200,97 +220,97 @@ def run_sql_query(query: str) -> pd.DataFrame:
         conn.close()
     return df
 
-# --- Main Chat UI ---
-st.info('This is a chat interface with the database, focused on answering questions using SQL.')
-# Sidebar: Display saved conversations
-st.sidebar.header("Saved Conversations")
-saved_conversations = load_conversations()
-conversation_titles = [conv["title"] for conv in saved_conversations]
+# # --- Main Chat UI ---
+# st.info('This is a chat interface with the database, focused on answering questions using SQL.')
+# # Sidebar: Display saved conversations
+# st.sidebar.header("Saved Conversations")
+# saved_conversations = load_conversations()
+# conversation_titles = [conv["title"] for conv in saved_conversations]
 
-with st.sidebar:
-    clear_button = st.button("♻️ Clear Cache", type="primary")
-    if clear_button:
-        st.cache_data.clear()
-        st.success("Cache cleared!")
+# with st.sidebar:
+#     clear_button = st.button("♻️ Clear Cache", type="primary")
+#     if clear_button:
+#         st.cache_data.clear()
+#         st.success("Cache cleared!")
 
-selected_conv_title = st.sidebar.selectbox("Select a saved conversation", ["-- New Conversation --"] + conversation_titles)
-if selected_conv_title != "-- New Conversation --":
-    # Load the selected conversation into session_state
-    for conv in saved_conversations:
-        if conv["title"] == selected_conv_title:
-            st.session_state["chat_history"] = conv["conversation"]
-            break
+# selected_conv_title = st.sidebar.selectbox("Select a saved conversation", ["-- New Conversation --"] + conversation_titles)
+# if selected_conv_title != "-- New Conversation --":
+#     # Load the selected conversation into session_state
+#     for conv in saved_conversations:
+#         if conv["title"] == selected_conv_title:
+#             st.session_state["chat_history"] = conv["conversation"]
+#             break
 
-# Sidebar: Button to save current conversation
-if st.sidebar.button("Save Current Conversation"):
-    if "chat_history" in st.session_state and st.session_state["chat_history"]:
-        save_conversation(st.session_state["chat_history"])
-        st.sidebar.success("Conversation saved!")
-    else:
-        st.sidebar.warning("No conversation to save.")
+# # Sidebar: Button to save current conversation
+# if st.sidebar.button("Save Current Conversation"):
+#     if "chat_history" in st.session_state and st.session_state["chat_history"]:
+#         save_conversation(st.session_state["chat_history"])
+#         st.sidebar.success("Conversation saved!")
+#     else:
+#         st.sidebar.warning("No conversation to save.")
 
-# Display chat history using Streamlit's chat message elements
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
+# # Display chat history using Streamlit's chat message elements
+# if "chat_history" not in st.session_state:
+#     st.session_state["chat_history"] = []
 
-for message in st.session_state["chat_history"]:
-    role = message.get("role", "assistant")
-    content = message.get("message") or message.get("content") or ""
-    with st.chat_message(role):
-        st.markdown(content)
+# for message in st.session_state["chat_history"]:
+#     role = message.get("role", "assistant")
+#     content = message.get("message") or message.get("content") or ""
+#     with st.chat_message(role):
+#         st.markdown(content)
 
-# Get user input using the chat input widget
-user_input = st.chat_input("Enter your query about the documents...")
-if user_input:
-    # Append user message to chat history
-    st.session_state["chat_history"].append({"role": "user", "message": user_input})
-    with st.chat_message("user"):
-        st.markdown(user_input)
-    try:
-        with st.spinner("Generating SQL query..."):
-            sql_query = convert_to_sql(user_input, SCHEMA)
-        assistant_message = f"SQL Query: `{sql_query}`"
-        st.session_state["chat_history"].append({"role": "assistant", "message": assistant_message})
-        with st.chat_message("assistant"):
-            st.markdown(assistant_message)
+# # Get user input using the chat input widget
+# user_input = st.chat_input("Enter your query about the documents...")
+# if user_input:
+#     # Append user message to chat history
+#     st.session_state["chat_history"].append({"role": "user", "message": user_input})
+#     with st.chat_message("user"):
+#         st.markdown(user_input)
+#     try:
+#         with st.spinner("Generating SQL query..."):
+#             sql_query = convert_to_sql(user_input, SCHEMA)
+#         assistant_message = f"SQL Query: `{sql_query}`"
+#         st.session_state["chat_history"].append({"role": "assistant", "message": assistant_message})
+#         with st.chat_message("assistant"):
+#             st.markdown(assistant_message)
 
-        # Check if the query is a CRUD operation and ask for confirmation
-        if sql_query.lower().startswith(("insert", "update", "delete", "create", "drop", "alter")):
-            st.session_state["pending_sql_query"] = sql_query
-            st.session_state["awaiting_confirmation"] = True
-            st.session_state["chat_history"].append({"role": "assistant", "message": "This operation will modify the database. Do you want to proceed? (yes/no)"})
-            with st.chat_message("assistant"):
-                st.markdown("This operation will modify the database. Do you want to proceed? (yes/no)")
-        else:
-            with st.spinner("Running SQL query..."):
-                result_df = run_sql_query(sql_query)
-            result_text = result_df.to_string(index=False)
-            result_message = f"Result:\n```\n{result_text}\n```"
-            st.session_state["chat_history"].append({"role": "assistant", "message": result_message})
-            with st.chat_message("assistant"):
-                st.markdown(result_message)
-    except Exception as e:
-        error_message = f"Error generating SQL query: {e}"
-        st.session_state["chat_history"].append({"role": "assistant", "message": error_message})
-        with st.chat_message("assistant"):
-            st.markdown(error_message)
+#         # Check if the query is a CRUD operation and ask for confirmation
+#         if sql_query.lower().startswith(("insert", "update", "delete", "create", "drop", "alter")):
+#             st.session_state["pending_sql_query"] = sql_query
+#             st.session_state["awaiting_confirmation"] = True
+#             st.session_state["chat_history"].append({"role": "assistant", "message": "This operation will modify the database. Do you want to proceed? (yes/no)"})
+#             with st.chat_message("assistant"):
+#                 st.markdown("This operation will modify the database. Do you want to proceed? (yes/no)")
+#         else:
+#             with st.spinner("Running SQL query..."):
+#                 result_df = run_sql_query(sql_query)
+#             result_text = result_df.to_string(index=False)
+#             result_message = f"Result:\n```\n{result_text}\n```"
+#             st.session_state["chat_history"].append({"role": "assistant", "message": result_message})
+#             with st.chat_message("assistant"):
+#                 st.markdown(result_message)
+#     except Exception as e:
+#         error_message = f"Error generating SQL query: {e}"
+#         st.session_state["chat_history"].append({"role": "assistant", "message": error_message})
+#         with st.chat_message("assistant"):
+#             st.markdown(error_message)
 
-# Handle confirmation input
-if "awaiting_confirmation" in st.session_state and st.session_state["awaiting_confirmation"]:
-    confirmation_input = st.chat_input("Please confirm the operation (yes/no):", key="confirmation")
-    if confirmation_input:
-        if confirmation_input.lower() == "yes":
-            with st.spinner("Running SQL query..."):
-                result_df = run_sql_query(st.session_state["pending_sql_query"])
-            result_text = result_df.to_string(index=False)
-            result_message = f"Result:\n```\n{result_text}\n```"
-            st.session_state["chat_history"].append({"role": "assistant", "message": result_message})
-            with st.chat_message("assistant"):
-                st.markdown(result_message)
-        else:
-            st.session_state["chat_history"].append({"role": "assistant", "message": "Operation cancelled by the user."})
-            with st.chat_message("assistant"):
-                st.markdown("Operation cancelled by the user.")
-        st.session_state["awaiting_confirmation"] = False
-        st.session_state["pending_sql_query"] = None
-        st.rerun()  # Rerun the app to clear the confirmation input
+# # Handle confirmation input
+# if "awaiting_confirmation" in st.session_state and st.session_state["awaiting_confirmation"]:
+#     confirmation_input = st.chat_input("Please confirm the operation (yes/no):", key="confirmation")
+#     if confirmation_input:
+#         if confirmation_input.lower() == "yes":
+#             with st.spinner("Running SQL query..."):
+#                 result_df = run_sql_query(st.session_state["pending_sql_query"])
+#             result_text = result_df.to_string(index=False)
+#             result_message = f"Result:\n```\n{result_text}\n```"
+#             st.session_state["chat_history"].append({"role": "assistant", "message": result_message})
+#             with st.chat_message("assistant"):
+#                 st.markdown(result_message)
+#         else:
+#             st.session_state["chat_history"].append({"role": "assistant", "message": "Operation cancelled by the user."})
+#             with st.chat_message("assistant"):
+#                 st.markdown("Operation cancelled by the user.")
+#         st.session_state["awaiting_confirmation"] = False
+#         st.session_state["pending_sql_query"] = None
+#         st.rerun()  # Rerun the app to clear the confirmation input

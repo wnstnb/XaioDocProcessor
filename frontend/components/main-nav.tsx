@@ -34,7 +34,8 @@ export function MainNav() {
   return (
     <div className="mr-4 flex">
       <Link href="/" className="mr-6 flex items-center space-x-2">
-        <span className="hidden font-bold sm:inline-block">FormSage</span>
+      <img src="/xaiodocpro_hexa_big.png" height="24" width="24" alt="Xaio"></img>
+        <span className="hidden font-bold sm:inline-block">Xaio</span>
       </Link>
       <nav className="flex items-center space-x-6 text-sm font-medium">
         {items.map((item) => (

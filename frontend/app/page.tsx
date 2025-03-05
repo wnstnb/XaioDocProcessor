@@ -11,7 +11,7 @@ export default function Home() {
           Extract structured data from documents with AI
         </h1>
         <p className="max-w-[750px] text-center text-lg text-muted-foreground sm:text-xl">
-          FormSage uses Gemini 2.0 Flash API to extract key-value pairs from PDFs and images with high accuracy
+          Xaio uses Gemini 2.0 Flash API to extract key-value pairs from PDFs and images with high accuracy
         </p>
         <div className="flex flex-col gap-4 sm:flex-row">
           <Button asChild size="lg">

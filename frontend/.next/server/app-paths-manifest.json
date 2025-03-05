@@ -1,1 +1,6 @@
-{}
+{
+  "/chat/page": "app/chat/page.js",
+  "/documents/page": "app/documents/page.js",
+  "/metrics/page": "app/metrics/page.js",
+  "/page": "app/page.js"
+}
