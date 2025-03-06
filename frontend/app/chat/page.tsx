@@ -36,24 +36,24 @@ export default function ChatPage() {
   // Get the 5 most recent conversations
   const recentConversations = savedConversations.slice(0, 5);
 
-  // Function to handle clicking on a recent conversation link
-  const handleRecentConversationClick = (convId: number) => {
-    setSelectedConversationId(convId.toString());
+  // // Function to handle clicking on a recent conversation link
+  // const handleRecentConversationClick = (convId: number) => {
+  //   setSelectedConversationId(convId.toString());
     
-    // Find the chosen conversation
-    const conv = savedConversations.find((c) => c.id === convId);
-    if (conv) {
-      // Convert the saved conversation format to the ChatMessage format
-      const formattedMessages: ChatMessage[] = conv.conversation.map((msg, index) => ({
-        id: index.toString(),
-        role: msg.role as "user" | "assistant",
-        content: msg.content || msg.message || "",
-        timestamp: "Loaded message"
-      }));
+  //   // Find the chosen conversation
+  //   const conv = savedConversations.find((c) => c.id === convId);
+  //   if (conv) {
+  //     // Convert the saved conversation format to the ChatMessage format
+  //     const formattedMessages: ChatMessage[] = conv.conversation.map((msg, index) => ({
+  //       id: index.toString(),
+  //       role: msg.role as "user" | "assistant",
+  //       content: msg.content || msg.message || "",
+  //       timestamp: "Loaded message"
+  //     }));
       
-      setChatMessages(formattedMessages);
-    }
-  };
+  //     setChatMessages(formattedMessages);
+  //   }
+  // };
 
   // Load the list of saved conversations once
   useEffect(() => {
@@ -86,30 +86,101 @@ export default function ChatPage() {
     // Find the chosen conversation
     const conv = savedConversations.find((c) => String(c.id) === convId)
     if (conv) {
-      // Convert the saved conversation format to the ChatMessage format
-      const formattedMessages: ChatMessage[] = conv.conversation.map((msg, index) => ({
-        id: index.toString(),
-        role: msg.role as "user" | "assistant",
-        content: msg.content || msg.message || "",
-        timestamp: "Loaded message"
-      }));
+      console.log("Selected conversation:", conv);
       
-      setChatMessages(formattedMessages);
+      try {
+        // Ensure conversation is an array
+        let conversationArray = conv.conversation;
+        
+        // If it's a string (which shouldn't happen with proper backend parsing), try to parse it
+        if (typeof conversationArray === 'string') {
+          console.log("Conversation is a string, attempting to parse:", conversationArray);
+          conversationArray = JSON.parse(conversationArray);
+        }
+        
+        if (!Array.isArray(conversationArray)) {
+          console.error("Conversation is not an array after processing:", conversationArray);
+          return;
+        }
+        
+        // Convert the saved conversation format to the ChatMessage format
+        const formattedMessages: ChatMessage[] = conversationArray.map((msg, index) => {
+          // Ensure we have the required fields
+          if (!msg || typeof msg !== 'object') {
+            console.error("Invalid message format:", msg);
+            return null;
+          }
+          
+          return {
+            id: index.toString(),
+            role: (msg.role || "assistant") as "user" | "assistant",
+            content: msg.content || msg.message || "",
+            timestamp: "Loaded message"
+          };
+        }).filter(Boolean) as ChatMessage[]; // Remove any null entries
+        
+        console.log("Formatted messages:", formattedMessages);
+        
+        if (formattedMessages.length > 0) {
+          setChatMessages(formattedMessages);
+        } else {
+          console.error("No valid messages found in conversation");
+        }
+      } catch (error) {
+        console.error("Error processing conversation:", error);
+      }
     }
   }
-
-  // const handleSaveConversation = async () => {
-  //   try {
-  //     await axios.post("http://localhost:8000/save-conversation", {
-  //       conversation: chatHistory, // Use chatHistory instead of messages
-  //       title: `Conversation on ${new Date().toLocaleString()}`,
-  //     })
-  //     alert("Conversation saved!")
-  //   } catch (error) {
-  //     console.error("Error saving conversation:", error)
-  //     alert("Failed to save conversation.")
-  //   }
-  // }
+  // Function to handle clicking on a recent conversation link
+  const handleRecentConversationClick = (convId: number) => {
+    setSelectedConversationId(convId.toString());
+    
+    // Find the chosen conversation
+    const conv = savedConversations.find((c) => c.id === convId);
+    if (conv) {
+      try {
+        // Ensure conversation is an array
+        let conversationArray = conv.conversation;
+        
+        // If it's a string (which shouldn't happen with proper backend parsing), try to parse it
+        if (typeof conversationArray === 'string') {
+          console.log("Conversation is a string, attempting to parse:", conversationArray);
+          conversationArray = JSON.parse(conversationArray);
+        }
+        
+        if (!Array.isArray(conversationArray)) {
+          console.error("Conversation is not an array after processing:", conversationArray);
+          return;
+        }
+        
+        // Convert the saved conversation format to the ChatMessage format
+        const formattedMessages: ChatMessage[] = conversationArray.map((msg, index) => {
+          // Ensure we have the required fields
+          if (!msg || typeof msg !== 'object') {
+            console.error("Invalid message format:", msg);
+            return null;
+          }
+          
+          return {
+            id: index.toString(),
+            role: (msg.role || "assistant") as "user" | "assistant",
+            content: msg.content || msg.message || "",
+            timestamp: "Loaded message"
+          };
+        }).filter(Boolean) as ChatMessage[]; // Remove any null entries
+        
+        console.log("Formatted messages:", formattedMessages);
+        
+        if (formattedMessages.length > 0) {
+          setChatMessages(formattedMessages);
+        } else {
+          console.error("No valid messages found in conversation");
+        }
+      } catch (error) {
+        console.error("Error processing conversation:", error);
+      }
+    }
+  };
 
   return (
     <div className="container py-10">
@@ -120,7 +191,7 @@ export default function ChatPage() {
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* LEFT CARD: instructions, plus conversation dropdown & save button */}
-        <Card className="md:col-span-1 flex flex-col h-full">
+        <Card className="md:col-span-1 flex flex-col h-[700px]">
           <CardHeader>
             <CardTitle>Previous Conversations</CardTitle>
             {/* NEW: Load & Save UI */}
@@ -169,12 +240,12 @@ export default function ChatPage() {
         </Card>
 
         {/* RIGHT CARD: The chat interface */}
-        <Card className="md:col-span-2">
-          <CardHeader>
+        <Card className="md:col-span-2 flex flex-col h-[700px]">
+          <CardHeader className="flex-shrink-0">
             <CardTitle>Chat</CardTitle>
             <CardDescription>Ask questions about your document data</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-grow overflow-hidden p-0">
             {/* Pass in chatHistory and setChatHistory so ChatInterface can manage messages */}
             <ChatInterface 
               initialMessages={chatMessages} 

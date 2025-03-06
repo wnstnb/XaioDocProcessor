@@ -197,26 +197,26 @@ class BusinessLicense(BaseModel):
 # Mapping function
 def get_model(model_name: str) -> Type[BaseModel]:
     model_mapping = {
-        "1120S_p1": F1120S_p1,
-        "1120S_k1": F1120S_k1,
-        "1120S_bal_sheet": BalanceSheet,
-        "1065_p1": F1120S_p1,
-        "1065_k1": F1065_k1,
-        "1065_bal_sheet": BalanceSheet,
-        "1120_p1": F1120S_p1,
-        "1120_bal_sheet": BalanceSheet,
-        "1040_p1": F1040_p1,
-        "1040_sch_c": F1040_sch_c,
-        "acord_25": Acord25,
-        "acord_28": Acord28,
-        "unknown": None,
-        "unknown_text_type": None,
-        "unknown_tax_form_type": None,
-        "drivers_license": DriversLicense,
-        "passport": Passport,
-        "lease_document": LeaseDocument,
-        "certificate_of_good_standing": CertificateOfGoodStanding,
-        "business_license": BusinessLicense,
+        "1120S_p1": F1120S_p1, # First page of 1120S. Contains profit & loss information.
+        "1120S_k1": F1120S_k1, # K1 for 1120S. Contains shareholder information.
+        "1120S_bal_sheet": BalanceSheet, # Balance sheet for 1120S.
+        "1065_p1": F1065_p1, # First page of 1065. Contains profit & loss information.
+        "1065_k1": F1065_k1, # K1 for 1065. Contains partner information.
+        "1065_bal_sheet": BalanceSheet, # Balance sheet for 1065.
+        "1120_p1": F1120_p1, # First page of 1120. Contains profit & loss information.
+        "1120_bal_sheet": BalanceSheet, # Balance sheet for 1120.
+        "1040_p1": F1040_p1, # First page of 1040. Contains personal information.
+        "1040_sch_c": F1040_sch_c, # Schedule C for 1040. Contains business information for sole proprietors.
+        "acord_25": Acord25, # Acord 25. Contains insurance information.
+        "acord_28": Acord28, # Acord 28. Contains insurance information.
+        "unknown": None, # Page is Unknown.
+        "unknown_text_type": None, # Page is Unknown text.
+        "unknown_tax_form_type": None, # Page is Unknown tax type.
+        "drivers_license": DriversLicense, # Drivers license.
+        "passport": Passport, # Passport.
+        "lease_document": LeaseDocument, # Lease document. Should contain renter/lessee information, address, start date, end date, and term length.
+        "certificate_of_good_standing": CertificateOfGoodStanding, # Certificate of good standing. Should contain business name, current standing, and date incorporated.
+        "business_license": BusinessLicense, # Business license. Should contain business name, current standing, and date issued.
     }
     return model_mapping.get(model_name)
 

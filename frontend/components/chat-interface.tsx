@@ -50,6 +50,21 @@ export function ChatInterface({ initialMessages, onMessagesChange }: ChatInterfa
     scrollToBottom();
   }, [messages]);
 
+  // Update messages when initialMessages changes
+  useEffect(() => {
+    console.log("initialMessages changed:", initialMessages);
+    if (initialMessages && initialMessages.length > 0) {
+      setMessages(initialMessages);
+    }
+  }, [initialMessages]);
+  
+  // Update parent component when messages change
+  useEffect(() => {
+    if (onMessagesChange) {
+      onMessagesChange(messages);
+    }
+  }, [messages, onMessagesChange]);
+
   // Function to scroll to the bottom of the messages
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -197,13 +212,12 @@ export function ChatInterface({ initialMessages, onMessagesChange }: ChatInterfa
   };
 
   return (
-    <div className="flex h-[500px] flex-col">
+    <div className="flex flex-col h-full">
       <ScrollArea
-        className="flex-1 p-4"
-        style={{ maxHeight: "400px" }}
+        className="flex-1 p-4 overflow-y-auto"
         ref={scrollAreaRef}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 pb-2">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -218,9 +232,9 @@ export function ChatInterface({ initialMessages, onMessagesChange }: ChatInterfa
               >
                 <div className="mb-1 flex items-center">
                   {message.role === "user" ? (
-                    <User className="mr-2 h-4 w-4" />
+                    <User className="mr-2 h-4 w-4 flex-shrink-0" />
                   ) : (
-                    <Bot className="mr-2 h-4 w-4" />
+                    <Bot className="mr-2 h-4 w-4 flex-shrink-0" />
                   )}
                   <span className="text-xs font-medium">
                     {message.role === "user" ? "You" : "FormSage"}
@@ -229,23 +243,27 @@ export function ChatInterface({ initialMessages, onMessagesChange }: ChatInterfa
                     {message.timestamp}
                   </span>
                 </div>
-                <div className="my-2">
+                <div className="my-2 break-words">
                   <ReactMarkdown
                     components={{
-                      p: ({node, ...props}) => <p className="my-2" {...props} />,
-                      code: ({node, ...props}) => <code className="bg-gray-700 px-1 py-0.5 rounded" {...props} />
+                      p: ({node, ...props}) => <p className="my-2 break-words" {...props} />,
+                      code: ({node, ...props}) => <code className="bg-gray-700 px-1 py-0.5 rounded break-all whitespace-pre-wrap" {...props} />,
+                      pre: ({node, ...props}) => <pre className="bg-gray-700 p-2 rounded my-2 overflow-x-auto max-w-full" {...props} />,
+                      table: ({node, ...props}) => <div className="overflow-x-auto"><table className="border-collapse border border-gray-600 my-2" {...props} /></div>,
+                      th: ({node, ...props}) => <th className="border border-gray-600 px-2 py-1 bg-gray-700" {...props} />,
+                      td: ({node, ...props}) => <td className="border border-gray-600 px-2 py-1" {...props} />
                     }}
                   >
                     {message.content}
                   </ReactMarkdown>
                 </div>
                 {message.sql && (
-                  <div className="mt-2 rounded bg-gray-700 p-2 text-xs font-mono">
+                  <div className="mt-2 rounded bg-gray-700 p-2 text-xs font-mono overflow-hidden">
                     <div className="flex items-center text-gray-400 mb-1">
-                      <Database className="mr-1 h-3 w-3" />
+                      <Database className="mr-1 h-3 w-3 flex-shrink-0" />
                       SQL Query:
                     </div>
-                    <div className="text-gray-200">
+                    <div className="text-gray-200 break-words whitespace-pre-wrap overflow-x-auto max-h-[150px] overflow-y-auto">
                       {message.sql}
                     </div>
                   </div>
@@ -269,7 +287,7 @@ export function ChatInterface({ initialMessages, onMessagesChange }: ChatInterfa
         </div>
       </ScrollArea>
 
-      <div className="border-t p-4">
+      <div className="border-t p-4 mt-auto bg-background">
         <div className="flex justify-end mb-2">
             <Button 
               onClick={handleSaveConversation} 

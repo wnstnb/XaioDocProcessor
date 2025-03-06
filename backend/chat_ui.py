@@ -115,18 +115,37 @@ def save_conversation(conversation, title="Conversation"):
 def load_conversations():
     """Load all saved conversations from the database."""
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)  # Use DictCursor for easier column access
     cursor.execute("SELECT id, title, conversation, created_at FROM conversations ORDER BY created_at DESC")
     rows = cursor.fetchall()
     conn.close()
     conversations = []
     for row in rows:
-        conversations.append({
-            "id": row[0],
-            "title": row[1],
-            "conversation": json.loads(row[2]),
-            "created_at": row[3]
-        })
+        try:
+            # Make sure we're properly parsing the JSON string
+            conversation_data = None
+            if isinstance(row['conversation'], str):
+                conversation_data = json.loads(row['conversation'])
+            else:
+                # If it's already a dict/list, use it directly
+                conversation_data = row['conversation']
+            
+            # Debug output
+            print(f"Conversation {row['id']} loaded. Type: {type(conversation_data)}")
+            
+            # Format the created_at timestamp
+            created_at = row['created_at'].isoformat() if hasattr(row['created_at'], 'isoformat') else str(row['created_at'])
+            
+            conversations.append({
+                "id": row['id'],
+                "title": row['title'],
+                "conversation": conversation_data,
+                "created_at": created_at
+            })
+        except Exception as e:
+            print(f"Error parsing conversation {row['id']}: {e}")
+            import traceback
+            traceback.print_exc()
     return conversations
 
 # --- Helper Functions for SQL Conversion ---
@@ -141,42 +160,105 @@ def convert_to_sql(nl_query: str, schema: str) -> str:
     examples = """
     Examples of valid queries:
 
-    1) "How many tables are in the DB?"
-    SELECT COUNT(*) AS table_count FROM sqlite_master WHERE type='table';
+    1) "Show me tax return data on Company XYZ for the last 3 years. Exclude balance sheet items."
+    SELECT e.filename,
+           e.key,
+           e.value,
+           e.page_label,
+           p.created_at,
+           ent.entity_name
+    FROM extracted2 e
+    JOIN pages p ON e.filename = p.preprocessed
+    JOIN page_entity_crosswalk pc ON p.id = pc.page_id
+    JOIN entities ent ON pc.entity_id = ent.entity_id
+    WHERE ent.entity_name = 'Company XYZ'
+      AND p.created_at >= DATE('now', '-3 years')
+      AND e.page_label NOT IN ('1120S_bal_sheet', '1065_bal_sheet', '1120_bal_sheet')
+    ORDER BY p.created_at DESC;
 
-    2) "What are the table names?"
-    SELECT name FROM sqlite_master WHERE type='table';
+    2) "What is the insured property address for Company ABC's insurance?"
+    SELECT DISTINCT e.filename,
+           MAX(CASE WHEN e.key = 'property_address' THEN e.value END) AS property_address,
+           ent.entity_name
+    FROM extracted2 e
+    JOIN pages p ON e.filename = p.preprocessed
+    JOIN page_entity_crosswalk pc ON p.id = pc.page_id
+    JOIN entities ent ON pc.entity_id = ent.entity_id
+    WHERE ent.entity_name = 'Company ABC'
+      AND e.page_label IN ('acord_28', 'acord_25')
+    GROUP BY e.filename, ent.entity_name;
 
-    3) "[complex query] Show me all extracted data that we have on a person named something like notrealname."
-    SELECT e.entity_name, e.entity_type, e.additional_info, ex.key, ex.value 
-    FROM entities e 
-    JOIN page_entity_crosswalk pec 
-        ON e.entity_id = pec.entity_id 
-    JOIN pages p ON pec.page_id = p.rowid 
-    JOIN extracted2 ex ON p.preprocessed = ex.filename 
-        AND p.page_number = ex.page_num 
-        WHERE e.entity_type = 'person' AND lower(e.entity_name) LIKE '%notrealname%';
+    3) "Does AAA Inc. have a lease? What are the lease terms on it?"
+    SELECT e.filename,
+           MAX(CASE WHEN e.key = 'lease_start_date' THEN e.value END) AS lease_start_date,
+           MAX(CASE WHEN e.key = 'lease_end_date' THEN e.value END) AS lease_end_date,
+           MAX(CASE WHEN e.key = 'term_length' THEN e.value END) AS term_length,
+           ent.entity_name
+    FROM extracted2 e
+    JOIN pages p ON e.filename = p.preprocessed
+    JOIN page_entity_crosswalk pc ON p.id = pc.page_id
+    JOIN entities ent ON pc.entity_id = ent.entity_id
+    WHERE ent.entity_name = 'AAA Inc.'
+      AND e.page_label = 'lease_document'
+    GROUP BY e.filename, ent.entity_name;
 
-    4) "How many pages have I run today?"
-    SELECT COUNT(DISTINCT filename) AS unique_documents_today FROM pages WHERE DATE(created_at) = DATE('now');
+    4) "Who are the owners of MM Corp, and do we have drivers licenses for them?"
+    WITH owners AS (
+        SELECT DISTINCT e.filename,
+               e.value AS owner_name
+        FROM extracted2 e
+        JOIN pages p ON e.filename = p.preprocessed
+        JOIN page_entity_crosswalk pc ON p.id = pc.page_id
+        JOIN entities ent ON pc.entity_id = ent.entity_id
+        WHERE ent.entity_name = 'MM Corp'
+          AND e.key = 'shareholder_name'
+          AND e.page_label IN ('1120S_k1', '1065_k1')
+    ),
+    drivers AS (
+        SELECT DISTINCT ent.entity_name AS person_name
+        FROM extracted2 e
+        JOIN pages p ON e.filename = p.preprocessed
+        JOIN page_entity_crosswalk pc ON p.id = pc.page_id
+        JOIN entities ent ON pc.entity_id = ent.entity_id
+        WHERE e.page_label = 'drivers_license'
+          AND ent.entity_type = 'person'
+    )
+    SELECT o.owner_name,
+           CASE WHEN d.person_name IS NOT NULL THEN 'Yes' ELSE 'No' END AS has_drivers_license
+    FROM owners o
+    LEFT JOIN drivers d ON o.owner_name = d.person_name;
 
-    5) "How many unique documents have been uploaded today?"
-    SELECT COUNT(DISTINCT filename) AS unique_documents_today FROM pages WHERE DATE(created_at) = DATE('now');
+    5) "Do we have a certificate of good standing for JJ LLC?"
+    SELECT e.filename,
+           MAX(CASE WHEN e.key = 'business_name' THEN e.value END) AS business_name,
+           MAX(CASE WHEN e.key = 'current_standing' THEN e.value END) AS current_standing,
+           MAX(CASE WHEN e.key = 'date_incorporated' THEN e.value END) AS date_incorporated,
+           ent.entity_name
+    FROM extracted2 e
+    JOIN pages p ON e.filename = p.preprocessed
+    JOIN page_entity_crosswalk pc ON p.id = pc.page_id
+    JOIN entities ent ON pc.entity_id = ent.entity_id
+    WHERE ent.entity_name = 'JJ LLC'
+      AND e.page_label = 'certificate_of_good_standing'
+    GROUP BY e.filename, ent.entity_name;
     """
 
-    prompt = f"""You are an expert data scientist. You think step-by-step, considering all relationships and meanings in the data, and you thoughtfully craft your SQL queries with precision.
-    You are given a PostgreSQL database with the following schema:
+    prompt = f"""You are an expert data scientist specialized in SQL query generation. Analyze the provided PostgreSQL database schema and think step-by-step to produce precise and optimized SQL queries.
+
+    Database Schema:
     {schema}
 
-    You can only produce valid PostgreSQL SQL queries, including SELECT queries as well as CRUD operations (e.g., CREATE, UPDATE, DELETE, DROP).
-    If given a [complex query] tag, then take time to reconsider the schema as joining multiple tables is likely.
-    Use information_schema for metadata queries. For example:
+    Generate only valid PostgreSQL SQL queries (SELECT, CREATE, UPDATE, DELETE, DROP, etc.). For queries tagged as [complex query], carefully review the schema and consider joining multiple tables. Use information_schema for metadata queries when necessary.
+
+    Examples:
     {examples}
 
-    Write a SQL query to answer the following question or perform the requested operation:
+    Write a SQL query to answer the following natural language request:
     \"\"\"{nl_query}\"\"\"
-    Make sure your answer is a single valid PostgreSQL SQL query. Do not include any commentary.
+
+    Your answer must be a single, valid PostgreSQL SQL query with no additional commentary.
     """
+
 
     response = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
