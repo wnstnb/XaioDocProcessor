@@ -127,8 +127,9 @@ class PDFHandler:
             })
 
         else:
+            print(os.getenv('POPPLER_PATH'))
             # Directly convert PDF pages to images
-            pages = convert_from_path(self.pdf_path, dpi=300, poppler_path=os.environ.get('POPPLER_PATH'))
+            pages = convert_from_path(self.pdf_path, dpi=300, poppler_path=os.getenv('POPPLER_PATH'))
             for page_num, image in enumerate(tqdm(pages, desc='converting pages...'), start=1):
                 image_width, image_height = image.size
 
