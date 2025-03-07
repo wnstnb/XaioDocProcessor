@@ -11,10 +11,70 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
+    "/metrics/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/metrics/page.js"
+    ],
+    "/api/metrics/confidence-by-type-over-time/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/confidence-by-type-over-time/route.js"
+    ],
+    "/api/metrics/total-documents/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/total-documents/route.js"
+    ],
+    "/api/metrics/avg-confidence/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/avg-confidence/route.js"
+    ],
+    "/api/metrics/avg-processing-time/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/avg-processing-time/route.js"
+    ],
+    "/api/metrics/document-type-distribution/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/document-type-distribution/route.js"
+    ],
+    "/api/metrics/processing-time-trend/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/processing-time-trend/route.js"
+    ],
+    "/api/metrics/processing-time-by-type-and-pages/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/processing-time-by-type-and-pages/route.js"
+    ],
+    "/api/metrics/volume-over-time/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/volume-over-time/route.js"
+    ],
+    "/api/metrics/field-extraction-success/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/field-extraction-success/route.js"
+    ],
+    "/api/metrics/confidence-by-type/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/metrics/confidence-by-type/route.js"
+    ],
     "/chat/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/chat/page.js"
+    ],
+    "/documents/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/documents/page.js"
     ]
   }
 }
