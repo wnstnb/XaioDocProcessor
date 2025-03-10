@@ -17,12 +17,7 @@ const items = [
     icon: <FileText className="mr-2 h-4 w-4" />,
   },
   {
-    title: "Metrics",
-    href: "/metrics",
-    icon: <BarChart2 className="mr-2 h-4 w-4" />,
-  },
-  {
-    title: "SQL Chat",
+    title: "ChatDB",
     href: "/chat",
     icon: <MessageSquare className="mr-2 h-4 w-4" />,
   },

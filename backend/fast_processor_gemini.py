@@ -496,7 +496,7 @@ class ClassifyExtract:
 
 
 
-def process_file(fp):
+def process_file(fp, save_to_db=False):
     p = PDFHandler(fp)
 
     df_pages = p.df_pages
@@ -536,16 +536,26 @@ def process_file(fp):
         df_info = pd.concat(info_results)
 
     if extraction_results:
-
         df_extracted = pd.concat(extraction_results)
         
         # Fix non-serializable columns
         for col in df_extracted.columns:
             if df_extracted[col].apply(lambda x: isinstance(x, (list, dict, set))).any():
                 df_extracted[col] = df_extracted[col].apply(lambda x: str(x) if isinstance(x, (list, dict, set)) else x)
-        # df_extracted['id'] = None
-        # df_extracted['created_at'] = None
-        # store_df_to_db(df_extracted, 'extracted')
+        
+        # Save to database if requested
+        if save_to_db:
+            try:
+                from document_ui import store_df_to_db
+                store_df_to_db(df_pages, 'pages')
+                store_df_to_db(df_extracted, 'extracted2')
+                store_df_to_db(df_info, 'call_info')
+                print("Data saved to database successfully")
+            except Exception as e:
+                print(f"Error saving to database: {e}")
+                import traceback
+                traceback.print_exc()
+        
         return df_pages, df_extracted, df_info
     else:
         return df_pages, None, None

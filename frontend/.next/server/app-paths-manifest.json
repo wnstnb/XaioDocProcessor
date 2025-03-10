@@ -1,11 +1,5 @@
 {
-  "/api/metrics/document-type-distribution/route": "app/api/metrics/document-type-distribution/route.js",
-  "/api/metrics/confidence-by-type/route": "app/api/metrics/confidence-by-type/route.js",
-  "/api/metrics/processing-time-by-type-and-pages/route": "app/api/metrics/processing-time-by-type-and-pages/route.js",
-  "/api/metrics/processing-time-trend/route": "app/api/metrics/processing-time-trend/route.js",
-  "/api/metrics/volume-over-time/route": "app/api/metrics/volume-over-time/route.js",
-  "/api/metrics/confidence-by-type-over-time/route": "app/api/metrics/confidence-by-type-over-time/route.js",
-  "/api/metrics/field-extraction-success/route": "app/api/metrics/field-extraction-success/route.js",
-  "/metrics/page": "app/metrics/page.js",
+  "/chat/page": "app/chat/page.js",
+  "/documents/page": "app/documents/page.js",
   "/page": "app/page.js"
 }

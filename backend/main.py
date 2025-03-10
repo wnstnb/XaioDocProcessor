@@ -10,6 +10,8 @@ import psycopg2
 import pandas as pd
 from typing import List, Optional
 from chat_ui import convert_to_sql, run_sql_query, save_conversation, load_conversations, SCHEMA
+from document_ui import store_df_to_db, get_connection
+from entity_matcher import match_entities_for_file
 
 
 app = FastAPI()
@@ -126,22 +128,6 @@ def get_s3_url(object_key, bucket_name="form-sage-storage", expiration=3600):
         ExpiresIn=expiration
     )
 
-# --- Supabase Connection using psycopg2 ---
-def get_connection():
-    user = os.environ.get("SUPABASE_USER")
-    password = os.environ.get("SUPABASE_PASSWORD")
-    host = os.environ.get("SUPABASE_HOST")
-    port = os.environ.get("SUPABASE_PORT", 5432)
-    dbname = os.environ.get("SUPABASE_DBNAME")
-    conn = psycopg2.connect(
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-        dbname=dbname
-    )
-    return conn
-
 @app.get("/list-files")
 def list_files():
     conn = get_connection()
@@ -221,17 +207,16 @@ async def upload_file(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        df_pages, df_extracted, df_info = process_file(file_path)
+        # Process the file and save to database in one step
+        df_pages, df_extracted, df_info = process_file(file_path, save_to_db=True)
 
-        # Fix non-serializable columns
+        # Fix non-serializable columns for JSON response
         for df in [df_pages, df_extracted, df_info]:
-            for col in df.columns:
-                if df[col].apply(lambda x: isinstance(x, (list, dict, set))).any():
-                    df[col] = df[col].apply(lambda x: str(x) if isinstance(x, (list, dict, set)) else x)
+            if df is not None:  # Check if df is not None before processing
+                for col in df.columns:
+                    if df[col].apply(lambda x: isinstance(x, (list, dict, set))).any():
+                        df[col] = df[col].apply(lambda x: str(x) if isinstance(x, (list, dict, set)) else x)
         
-        # for page in df_pages.to_dict(orient="records"):
-        #     page["s3_url"] = get_s3_url(page["preprocessed"])
-
         pages = df_pages.to_dict(orient="records")
         for page in pages:
             page["s3_url"] = get_s3_url(page["preprocessed"])
@@ -239,14 +224,18 @@ async def upload_file(file: UploadFile = File(...)):
         extracted = df_extracted.to_dict(orient="records") if df_extracted is not None else []
         info = df_info.to_dict(orient="records") if df_info is not None else []
 
-        print(extracted[0])
+        if extracted:
+            print(extracted[0])
         
+        # Run entity matching after processing the file
+        match_entities_for_file(os.path.basename(file_path))
+
         return JSONResponse({
             "filename": file.filename,
             "pages": pages,
             "extracted": extracted,
             "info": info,
-            "message": "File processed successfully"
+            "message": "File processed successfully and saved to database"
         })
     except Exception as e:
         # Log the exception details
